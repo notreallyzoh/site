@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Temp files
+optimize.mjs
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sharp binaries (dev only)

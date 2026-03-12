@@ -1,0 +1,146 @@
+/* ═══════════════════════════════════════════════════════════
+   @notreallyzoh — Design Tokens
+   Colors derived from logo: purple, neon lime, cyan, black
+   Classy (Dark) ↔ Bold (Bright)
+   ═══════════════════════════════════════════════════════════ */
+
+:root, [data-theme="classy"] {
+  --bg-primary: #07060d;
+  --bg-secondary: #0e0d18;
+  --bg-tertiary: #16142a;
+  --bg-card: rgba(14, 13, 24, 0.9);
+  --bg-glass: rgba(14, 13, 24, 0.55);
+  --text-primary: #eeeae4;
+  --text-secondary: #b0aac0;
+  --text-muted: #6a6480;
+  --text-accent: #c8ff00;
+  --accent: #9b6dff;
+  --accent-dim: #7040d4;
+  --accent-glow: rgba(155, 109, 255, 0.35);
+  --neon: #c8ff00;
+  --neon-glow: rgba(200, 255, 0, 0.3);
+  --cyan: #00e5cc;
+  --cyan-glow: rgba(0, 229, 204, 0.3);
+  --border: rgba(155, 109, 255, 0.14);
+  --border-active: rgba(155, 109, 255, 0.45);
+  --grad-hero: linear-gradient(135deg, #07060d 0%, #150a2e 50%, #07060d 100%);
+  --grad-accent: linear-gradient(135deg, #9b6dff, #c8ff00);
+  --grad-tri: linear-gradient(135deg, #9b6dff, #00e5cc, #c8ff00);
+  --particle-rgb: 155, 109, 255;
+  --cursor-rgb: 200, 255, 0;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --neo-face: #16142a;
+  --neo-edge: #0a0918;
+  --neo-edge-right: #100e22;
+  --shadow-glow: 0 0 30px var(--accent-glow);
+}
+
+[data-theme="bold"] {
+  --bg-primary: #faf8f2;
+  --bg-secondary: #f0ece2;
+  --bg-tertiary: #e4ddd0;
+  --bg-card: rgba(240, 236, 226, 0.92);
+  --bg-glass: rgba(240, 236, 226, 0.6);
+  --text-primary: #111;
+  --text-secondary: #444;
+  --text-muted: #888;
+  --text-accent: #7040d4;
+  --accent: #9b6dff;
+  --accent-dim: #7040d4;
+  --accent-glow: rgba(155, 109, 255, 0.22);
+  --neon: #5a8a00;
+  --neon-glow: rgba(90, 138, 0, 0.2);
+  --cyan: #00a89a;
+  --cyan-glow: rgba(0, 168, 154, 0.2);
+  --border: rgba(155, 109, 255, 0.14);
+  --border-active: rgba(155, 109, 255, 0.45);
+  --grad-hero: linear-gradient(135deg, #faf8f2 0%, #f4f0ff 50%, #faf8f2 100%);
+  --grad-accent: linear-gradient(135deg, #9b6dff, #5a8a00);
+  --grad-tri: linear-gradient(135deg, #9b6dff, #00a89a, #5a8a00);
+  --particle-rgb: 155, 109, 255;
+  --cursor-rgb: 90, 138, 0;
+  --neo-face: #f4f0e6;
+  --neo-edge: #d6d0c2;
+  --neo-edge-right: #e2dcd0;
+  --shadow-glow: 0 0 30px var(--accent-glow);
+}
+
+/* ═══════ RESET ═══════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: auto; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary);
+  line-height: 1.6; overflow-x: hidden; transition: background 0.6s ease, color 0.6s ease;
+}
+a { color: var(--accent); text-decoration: none; }
+img, video { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+
+/* ═══════ UTILITY ═══════ */
+.container { max-width: 1400px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem); }
+.mono { font-family: var(--font-mono); }
+.section { position: relative; padding: clamp(5rem, 10vh, 10rem) 0; }
+.section-label {
+  font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.3em; color: var(--neon); margin-bottom: 2rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.section-label::before { content: ''; width: 24px; height: 1px; background: var(--neon); }
+
+/* ═══════ NeoPOP-Inspired ═══════ */
+.neo-card {
+  position: relative; background: var(--neo-face); border-radius: 8px; overflow: visible; transition: transform 0.2s ease;
+}
+.neo-card::after {
+  content: ''; position: absolute; bottom: -4px; left: 4px;
+  width: 100%; height: 100%; background: var(--neo-edge); border-radius: 8px; z-index: -1; transition: all 0.2s;
+}
+.neo-card::before {
+  content: ''; position: absolute; top: 4px; right: -4px;
+  width: 4px; height: 100%; background: var(--neo-edge-right); border-radius: 0 8px 8px 0; z-index: -1; transition: all 0.2s;
+}
+.neo-card:hover { transform: translate(-1px, -1px); }
+.neo-card:hover::after { bottom: -5px; left: 5px; }
+.neo-card:hover::before { right: -5px; }
+
+.neo-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 12px 28px; font-family: var(--font-mono); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.15em;
+  color: #000; background: var(--neon); border-radius: 6px; position: relative;
+  transition: transform 0.15s ease; box-shadow: 4px 4px 0 var(--accent);
+}
+.neo-btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--accent); }
+.neo-btn:active { transform: translate(0); box-shadow: 2px 2px 0 var(--accent); }
+
+.neo-btn--outline {
+  background: transparent; color: var(--neon); border: 1px solid var(--neon);
+  box-shadow: 3px 3px 0 var(--accent);
+}
+.neo-btn--outline:hover { background: var(--neon); color: #000; }
+
+.glass {
+  background: var(--bg-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border); border-radius: 16px;
+}
+
+/* ═══════ CURSOR TRAIL ═══════ */
+.cursor-dot {
+  position: fixed; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--neon); pointer-events: none; z-index: 9999;
+  mix-blend-mode: difference; transform: translate(-50%, -50%);
+}
+.cursor-ring {
+  position: fixed; width: 36px; height: 36px; border-radius: 50%;
+  border: 1.5px solid var(--accent); pointer-events: none; z-index: 9998;
+  transform: translate(-50%, -50%); opacity: 0.5;
+}
+
+/* ═══════ SCROLLBAR ═══════ */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 99px; }
+::selection { background: var(--accent); color: #000; }
