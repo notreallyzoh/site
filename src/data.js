@@ -87,6 +87,22 @@ export const PROJECTS = [
     featured: true,
   },
   {
+    id: 'pocket-sensor', title: 'Pocket Sensor — Collaborative Gyroscope Canvas', category: 'installations', year: '2025',
+    desc: 'Scan a QR code, tilt your phone, paint together on a shared canvas — a real-time collaborative painting experience using gyroscope data.',
+    longDesc: [
+      { heading: 'The Concept', text: 'What if your phone could become a paintbrush? Pocket Sensor (codename CROSSTALK) turns smartphones into gyroscope controllers for a shared projection canvas. Up to 5 users scan a QR code, connect instantly, and paint together by tilting their phones.' },
+      { heading: 'Mushroom Stamps', text: 'Each user receives a unique mushroom-themed stamp — Amanita (spotted caps), Psilocybe (spiral fractals), Chanterelle (fire bolts), Cordyceps (parasitic tendrils), or Morel (honeycomb lattice). Every stamp leaves psychedelic, 3D-layered trails: wide soft glow → colored body → bright core → scattered particles.' },
+      { heading: 'Sound Design', text: 'Each stamp has a unique synthesized voice using the Web Audio API — sine waves, sawtooth, square, triangle oscillators with custom filters. Movement speed controls volume, X position controls pitch, Y position sweeps the filter cutoff. When two users\' trails cross, a radiant interaction zone appears on the canvas.' },
+      { heading: 'Technical Stack', text: 'Built with Node.js/Express and Socket.IO for real-time WebSocket communication. The phone reads DeviceOrientation API data at ~60fps and streams it to the projector canvas. A custom 2D canvas engine handles multi-layered rendering, permanent trails, and animated cursors. QR code generated server-side for instant join.' },
+    ],
+    tech: ['Node.js', 'Socket.IO', 'Canvas 2D', 'Web Audio API', 'DeviceOrientation', 'QR Code'],
+    media: [
+      { type: 'image', src: '/media/pocket-sensor/hero.png', caption: 'Collaborative gyroscope canvas — CROSSTALK' },
+    ],
+    links: { github: 'https://github.com/notreallyzoh/pocket-sensor' },
+    featured: true,
+  },
+  {
     id: 'vj-live', title: 'VJ / Live Visual Performances', category: 'vj', year: '2025',
     desc: 'Live visual performances for music IPs across Bangalore. Real-time generative visuals, audio-reactive systems, and projection mapping.',
     tech: ['Resolume','TouchDesigner','MIDI','Audio-Reactive'],

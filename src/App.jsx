@@ -875,10 +875,19 @@ function ProjectCard({ p }) {
                 <div className="detail__tags">{p.tech.map(t => <span key={t} className="stack-tool">{t}</span>)}</div>
               </div>
 
-              {p.links?.live && (
-                <a href={p.links.live} target="_blank" rel="noopener noreferrer" className="neo-btn detail__cta">
-                  View Live →
-                </a>
+              {(p.links?.live || p.links?.github) && (
+                <div className="detail__links">
+                  {p.links.live && (
+                    <a href={p.links.live} target="_blank" rel="noopener noreferrer" className="neo-btn detail__cta">
+                      View Live →
+                    </a>
+                  )}
+                  {p.links.github && (
+                    <a href={p.links.github} target="_blank" rel="noopener noreferrer" className="neo-btn neo-btn--outline detail__cta">
+                      ⟐ GitHub →
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>

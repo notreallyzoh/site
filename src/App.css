@@ -293,7 +293,8 @@
 .detail__tech-label { font-size: 0.55rem; color: var(--text-muted); letter-spacing: 0.15em; margin-bottom: 0.5rem; display: block; }
 .detail__tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
-.detail__cta { margin-top: 1.5rem; display: inline-block; }
+.detail__links { margin-top: 1.5rem; display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.detail__cta { display: inline-block; }
 
 @media (max-width: 768px) {
   .detail-overlay { padding: 1rem 0.5rem; }
