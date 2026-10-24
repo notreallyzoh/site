@@ -1,0 +1,1436 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHROOM SABHA 2026 — Farm Map
+   ---------------------------------------------------------------------------
+   ART DIRECTION
+   The app is the mycelium; the map is the fruiting body.
+
+   Everything that is UI lives BELOW GROUND — deep soil purple, threaded with
+   faint hyphae, glowing where you touch it. The map floats ABOVE it, lit like
+   a sheet of paper on the forest floor. Motion is growth, never sliding.
+
+   Palette from the festival's Illustrator artwork; type is the brand pairing
+   (Calistoga display / Josefin Sans body), self-hosted so it works offline.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@font-face{
+  font-family:'Calistoga';font-style:normal;font-weight:400;font-display:swap;
+  src:url('../assets/fonts/calistoga-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2122,U+2212,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:'Josefin Sans';font-style:normal;font-weight:100 700;font-display:swap;
+  src:url('../assets/fonts/josefinsans-latin-var.woff2') format('woff2-variations');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2122,U+2212,U+FEFF,U+FFFD;
+}
+
+/* ───────────────────────────────────────────────────────────── tokens ──── */
+:root{
+  /* soil — the underground. never pure black. */
+  --soil-900:#150922;
+  --soil-800:#1F0D31;
+  --soil-700:#2A1440;
+  --soil-600:#37194F;
+  --soil-500:#412161;   /* brand purple */
+  --soil-400:#573180;
+  --soil-300:#6F44A0;
+
+  /* light — spores, caps, paper */
+  --mustard:#E3B929;    /* brand mustard */
+  --mustard-hi:#F5D255;
+  --mustard-lo:#B98E14;
+  --cream:#F7E8AF;      /* brand cream */
+  --spore:#E0DF8B;
+  --paper:#FCF8ED;
+  --sage:#DBDDAD;
+  --forest:#1A4032;
+  --rust:#C4553B;
+
+  /* text hierarchy on soil */
+  --t1:var(--cream);
+  --t2:rgb(247 232 175 / .74);
+  --t3:rgb(247 232 175 / .50);
+  --t4:rgb(247 232 175 / .32);
+
+  --line:rgb(247 232 175 / .10);
+  --line-hi:rgb(247 232 175 / .18);
+  --veil:rgb(21 9 34 / .62);
+
+  /* kind accents — max two hues, varied in lightness not in rainbow */
+  --k-meal:#C79A3E;
+  --k-talk:#E3B929;
+  --k-lab:#9BBF6E;
+  --k-foray:#7FA96B;
+  --k-movement:#D98E6A;
+  --k-music:#B07FD0;
+  --k-film:#8FA8D8;
+  --k-ritual:#E0A6C4;
+  --k-logistics:#8E7FA0;
+
+  /* motion */
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-in-out:cubic-bezier(.76,0,.24,1);
+  --ease-back:cubic-bezier(.34,1.56,.64,1);
+  --ease-spring:cubic-bezier(.22,1.36,.36,1);
+  --d-micro:140ms; --d-sm:240ms; --d-md:420ms; --d-lg:640ms; --d-xl:1100ms;
+
+  /* spacing — one 4px-based scale, used everywhere instead of ad-hoc values */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:22px; --s6:30px; --s7:40px;
+
+  /* geometry */
+  --r-sm:9px; --r-md:14px; --r-lg:22px; --r-xl:30px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --hud-h:calc(56px + var(--safe-t));
+  --peek:calc(128px + var(--safe-b));
+
+  --map-tint:0;   /* night mode raises this */
+  color-scheme:dark;
+}
+
+/* night mode — warm, low-blue, for a forest after 20:00 */
+html[data-night="1"]{
+  --mustard:#E7A83A; --mustard-hi:#F0BC55; --cream:#F3DCA6;
+  --soil-900:#120714; --soil-800:#1B0A1D; --soil-700:#241026;
+  --map-tint:.42;
+}
+
+/* ────────────────────────────────────────────────────────────── reset ──── */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+/* A literal colour, not a variable, and on html rather than only body. body is
+   position:fixed here, so if anything disturbs background propagation — a
+   zoomed page, a failed custom property — the browser paints its own white and
+   the whole map region goes blank-looking. This is the floor under all of it. */
+html{background:#150922}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:'Josefin Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px;line-height:1.5;letter-spacing:-.005em;
+  color:var(--t1);
+  background:var(--soil-900,#150922);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow:hidden;
+  position:fixed;inset:0;
+}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{cursor:text}
+img{display:block;max-width:100%}
+svg{display:block}
+:focus-visible{outline:2px solid var(--mustard);outline-offset:3px;border-radius:4px}
+::selection{background:var(--mustard);color:var(--soil-900)}
+
+h1,h2,h3,.display{font-family:'Calistoga',Georgia,serif;font-weight:400;letter-spacing:-.015em;line-height:1.02}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:'tnum';letter-spacing:.01em}
+.eyebrow{
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--t3);
+}
+
+/* ═══════════════════════════════════════════════════════════ boot ════════
+   The network grows, fruits, then lifts away to reveal the farm.          */
+.boot{
+  position:fixed;inset:0;z-index:200;
+  display:grid;place-items:center;
+  background:
+    radial-gradient(120% 80% at 50% 110%, var(--soil-600) 0%, transparent 60%),
+    var(--soil-900);
+  color:var(--mustard);
+  transition:opacity var(--d-lg) var(--ease-in-out), transform var(--d-lg) var(--ease-in-out);
+}
+.boot.is-gone{opacity:0;transform:translateY(-8%) scale(1.04);pointer-events:none}
+.boot-inner{text-align:center;padding:0 32px;max-width:420px}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ═══════════════════════════════════════════════════════════ map ════════ */
+/* the sky sits underneath everything; the stage must not paint over it */
+.sky{position:fixed;inset:0;z-index:0;overflow:hidden;background:var(--soil-900,#150922)}
+.sky-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sky.sky-fallback{
+  /* the same earth palette, for browsers without WebGL */
+  background:
+    radial-gradient(120% 85% at 50% 112%, #4E5F3C 0%, transparent 58%),
+    linear-gradient(to bottom, #1A1009 0%, #2A1B10 55%, #5A3620 100%);
+}
+.stage{position:fixed;inset:0;z-index:1;background:transparent}
+.map-viewport{
+  position:absolute;inset:0;overflow:hidden;touch-action:none;
+  cursor:grab;
+}
+.map-viewport.is-dragging{cursor:grabbing}
+.map-layer{
+  /* Markers are positioned in SCREEN space from renderer.project(), so this
+     is a plain full-size overlay — no transform, no counter-scaling. That is
+     what lets the same pins work over a flat map and an isometric one. */
+  position:absolute;inset:0;
+  pointer-events:none;          /* only the markers inside are tappable */
+}
+.hotspots{pointer-events:auto}
+
+/* The p5 canvas is viewport-sized and does its own panning and zooming, so
+   linework is redrawn crisp instead of being scaled up as pixels.
+   Do NOT set width/height here — p5 owns the element's size, and overriding
+   it makes the drawing buffer and the displayed box diverge on resize, which
+   looks exactly like a stuck zoom. */
+.map-canvas-host{position:absolute;inset:0;overflow:hidden}
+.map-canvas-host canvas,.map-canvas-host .iso-canvas{
+  display:block;
+  opacity:0;transition:opacity var(--d-xl) var(--ease-out);
+}
+.map-canvas-host.is-ready canvas{opacity:1}
+
+/* soft vignette so the paper feels lit rather than pasted */
+.stage::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(140% 100% at 50% 44%,transparent 58%,rgb(12 6 20 / .38) 100%);
+}
+
+/* ── named pins ────────────────────────────────────────────────────────
+   The farm is drawn procedurally, so nothing is printed on it — the names
+   live here as real DOM, which keeps them crisp, selectable and reachable by
+   a screen reader. Everything inside is counter-scaled by --inv so a pin is
+   the same size on screen whether you are looking at the whole farm or one
+   corner of it. */
+.hotspots{position:absolute;inset:0;pointer-events:auto}
+
+.hs{
+  position:absolute;left:0;top:0;width:0;height:0;border:0;background:none;
+  opacity:0;animation:hs-in .5s var(--ease-out) forwards;
+  animation-delay:var(--delay,0ms);
+  will-change:transform;
+}
+@keyframes hs-in{to{opacity:1}}
+
+.hs-inner{
+  position:absolute;left:0;top:0;
+  transform:translate(-50%,-100%);
+  transform-origin:50% 100%;
+  display:flex;flex-direction:column;align-items:center;
+  padding-bottom:2px;
+}
+
+.hs-chip{
+  display:flex;flex-direction:column;align-items:center;
+  padding:3.5px 8px 4.5px;border-radius:7px;
+  background:var(--cream);
+  border:1.5px solid rgb(56 58 46 / .82);
+  box-shadow:0 2px 0 rgb(56 58 46 / .5), 0 4px 12px rgb(20 24 16 / .3);
+  white-space:nowrap;
+  transition:transform var(--d-sm) var(--ease-back),background var(--d-sm),box-shadow var(--d-sm);
+}
+.hs-chip b{
+  font-family:'Josefin Sans',sans-serif;font-weight:700;font-size:11.5px;
+  line-height:1.1;letter-spacing:.005em;color:#2E3226;
+}
+.hs-chip i{
+  font-style:normal;font-size:8.5px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:rgb(46 50 38 / .58);margin-top:2px;
+}
+
+.hs-stem{width:1.5px;height:9px;background:rgb(56 58 46 / .8)}
+.hs-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:var(--mustard);border:1.5px solid rgb(56 58 46 / .85);
+  box-shadow:0 0 0 0 rgb(227 185 41 / .5);
+  animation:pin-breathe 4.5s ease-in-out infinite;
+  animation-delay:var(--breath,0ms);
+}
+@keyframes pin-breathe{
+  0%,100%{box-shadow:0 0 0 0 rgb(227 185 41 / .55)}
+  50%    {box-shadow:0 0 0 5px rgb(227 185 41 / 0)}
+}
+
+/* stamped: you have stood here */
+.hs.is-stamped .hs-dot{background:var(--k-lab);animation:none}
+.hs.is-stamped .hs-chip{background:#E4EFCD}
+
+/* the one you are looking at */
+.hs.is-active .hs-chip{
+  transform:scale(1.10);
+  background:var(--mustard);
+  box-shadow:0 2px 0 rgb(56 58 46 / .6), 0 6px 20px rgb(227 185 41 / .45);
+}
+.hs.is-active .hs-dot{animation:none;background:var(--cream)}
+.hs.is-dim{opacity:.2!important;transition:opacity var(--d-sm)}
+
+/* Level of detail. Names appear as you get close enough for them to matter,
+   and anything still colliding is dropped by the declutter pass in map.js.
+   The fade lives on .hs-inner because .hs owns the reveal animation, and an
+   animation with `forwards` fill would override opacity set on the same
+   element. */
+.hs-inner{
+  transition:opacity var(--d-sm) var(--ease-out);
+}
+.hs.is-folded{pointer-events:none}
+/* A folded amenity shrinks to a quiet dot rather than vanishing: you can still
+   see something is there, and it reappears the moment you zoom in. */
+.am.is-folded{pointer-events:none}
+.am.is-folded .am-inner{transform:translate(-50%,-50%) scale(.34);opacity:.42}
+.am.is-folded .am-tip{opacity:0}
+.hs.is-folded .hs-chip,
+.hs.is-folded .hs-stem{opacity:0;transform:scale(.55);pointer-events:none}
+.hs.is-folded .hs-dot{width:6px;height:6px;opacity:.5;animation:none}
+.hs-chip,.hs-stem{transition:opacity var(--d-sm) var(--ease-out),transform var(--d-sm) var(--ease-back)}
+.hs.is-off .hs-inner{opacity:0;pointer-events:none}
+.hs.is-off{pointer-events:none}
+
+/* overview: compact chips, no subtitle — fits far more names on screen */
+.hotspots[data-zoom="1"] .hs-inner{transform:translate(-50%,-100%) scale(.84)}
+.hotspots[data-zoom="1"] .hs-chip i{display:none}
+.hotspots[data-zoom="1"] .hs-chip b{font-size:12px}
+.hotspots[data-zoom="2"] .hs-inner{transform:translate(-50%,-100%) scale(.93)}
+
+@media (hover:hover){
+  .hs:hover .hs-chip{transform:scale(1.07);background:var(--mustard-hi)}
+}
+
+/* ── amenity markers ────────────────────────────────────────────────────
+   Quiet by design: they carry practical information (toilets, water, food,
+   first aid) that matters when you need it and would be noise when you do
+   not, so they fade in with zoom and only name themselves on hover. */
+.am{
+  position:absolute;left:0;top:0;width:0;height:0;border:0;background:none;
+  opacity:0;animation:hs-in .5s var(--ease-out) forwards;
+  animation-delay:var(--delay,0ms);
+  will-change:transform;
+}
+.am-inner{
+  position:absolute;left:0;top:0;
+  transform:translate(-50%,-50%);
+  width:26px;height:26px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--cream);
+  border:1.5px solid rgb(26 64 50 / .85);
+  box-shadow:0 1.5px 0 rgb(26 64 50 / .35);
+  transition:transform var(--d-sm) var(--ease-back),background var(--d-sm);
+}
+.am-inner svg{
+  width:15px;height:15px;fill:none;
+  stroke:#1A4032;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+}
+.am[data-type="firstaid"] .am-inner{background:#F3C9BE;border-color:#8E3A26}
+.am[data-type="firstaid"] svg{stroke:#8E3A26}
+.am[data-type="food"] .am-inner{background:var(--mustard)}
+
+.am-tip{
+  position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);
+  padding:3px 8px;border-radius:6px;white-space:nowrap;
+  background:var(--soil-800);color:var(--cream);
+  font-size:10.5px;font-weight:600;letter-spacing:.02em;
+  border:1px solid var(--line-hi);
+  opacity:0;pointer-events:none;transition:opacity var(--d-sm);
+}
+@media (hover:hover){
+  .am:hover .am-inner{transform:translate(-50%,-50%) scale(1.18);background:var(--mustard-hi)}
+  .am:hover .am-tip{opacity:1}
+}
+.am:focus-visible .am-tip{opacity:1}
+
+/* hidden at the overview, present once you are actually navigating */
+.hotspots[data-zoom="1"] .am{opacity:0!important;pointer-events:none}
+.hotspots[data-zoom="2"] .am-inner{transform:translate(-50%,-50%) scale(.86)}
+
+/* ─────────────────────────────────────────────────────── you are here ─── */
+/*
+ * Three layers, and the order matters. The halo is the truth — it is drawn at
+ * the GPS's own stated accuracy, so under canopy it visibly swells and the map
+ * stops pretending to know exactly where you are. The cone appears only when
+ * the phone really has a heading. The amanita sits on top, which is the part
+ * anyone actually looks at.
+ */
+.you{position:absolute;width:0;height:0;z-index:4;--r:24px;--head:0deg}
+
+.you-halo{
+  position:absolute;left:calc(var(--r) * -1);top:calc(var(--r) * -1);
+  width:calc(var(--r) * 2);height:calc(var(--r) * 2);border-radius:50%;
+  background:rgb(111 214 255 / .13);
+  border:1px solid rgb(111 214 255 / .34);
+  transition:width .5s ease,height .5s ease,left .5s ease,top .5s ease;
+}
+
+/* A wedge, not an arrow: it says "roughly this way", which is all a phone
+   magnetometer under trees can honestly claim. */
+.you-cone{
+  position:absolute;left:-26px;top:-52px;width:52px;height:52px;
+  background:conic-gradient(from -22deg,
+    rgb(111 214 255 / .42) 0deg, rgb(111 214 255 / 0) 44deg);
+  clip-path:polygon(50% 100%, 0 0, 100% 0);
+  transform-origin:50% 100%;
+  transform:rotate(var(--head));
+  transition:transform .18s linear;
+  opacity:0;
+}
+.you[data-heading] .you-cone{opacity:1}
+
+.you-cap{
+  position:absolute;left:-14px;top:-30px;width:28px;height:30px;
+  filter:drop-shadow(0 3px 5px rgb(0 0 0 / .55));
+  animation:youBob 2.6s ease-in-out infinite;
+}
+.you-cap svg{width:100%;height:100%;display:block}
+.you-cap .cap{fill:#D2382F}
+.you-cap .stem{fill:#F3E9D2}
+.you-cap .spot{fill:#F7EFDD}
+
+@keyframes youBob{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-2.5px)}
+}
+
+/* A stale fix should look stale rather than quietly lie. */
+.you.is-stale{opacity:.45;filter:grayscale(.6)}
+
+@media (prefers-reduced-motion:reduce){
+  .you-cap{animation:none}
+  .you-halo,.you-cone{transition:none}
+}
+
+/* ──────────────────────────────────────────────────────── locate button ─── */
+/*
+ * Deliberately not in the HUD row: that is already six icons across at 375 px.
+ * This is also a primary action, and every map app in the world puts it here.
+ */
+.locate{
+  position:fixed;left:14px;bottom:calc(var(--peek) + 14px);z-index:8;
+  width:48px;height:48px;border-radius:50%;border:0;cursor:pointer;
+  display:grid;place-items:center;
+  background:rgb(36 22 51 / .84);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 6px 20px rgb(0 0 0 / .4), inset 0 0 0 1px rgb(243 233 210 / .14);
+  transition:background .2s, transform .12s;
+}
+.locate:active{transform:scale(.94)}
+.locate svg{width:23px;height:23px;fill:none;stroke:#F3E9D2;stroke-width:1.7;
+            stroke-linecap:round}
+.locate .lo-mid{fill:#F3E9D2;stroke:none}
+.locate[aria-pressed="true"] svg{stroke:#6FD6FF}
+.locate[aria-pressed="true"] .lo-mid{fill:#6FD6FF}
+.locate[data-busy] .locate-spin{
+  position:absolute;inset:3px;border-radius:50%;
+  border:2px solid transparent;border-top-color:#6FD6FF;
+  animation:loSpin .9s linear infinite;
+}
+@keyframes loSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.locate-spin{animation-duration:2.4s}}
+
+/* ───────────────────────────────────────────────────────── walking band ─── */
+/*
+ * Shown while navigating to something. Distance and a turn instruction, big
+ * enough to read at a glance while moving, because nobody stops walking to
+ * squint at a map.
+ */
+.nav-band{
+  position:fixed;left:12px;right:12px;bottom:calc(var(--peek) + 72px);z-index:9;
+  display:flex;align-items:center;gap:13px;
+  padding:12px 14px;border-radius:14px;
+  background:rgb(36 22 51 / .9);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 8px 26px rgb(0 0 0 / .45), inset 0 0 0 1px rgb(243 233 210 / .14);
+  color:var(--cream);
+}
+.nav-arrow{
+  flex:0 0 auto;width:40px;height:40px;border-radius:50%;
+  background:rgb(111 214 255 / .16);display:grid;place-items:center;
+  transform:rotate(var(--turn,0deg));transition:transform .2s ease-out;
+}
+.nav-arrow svg{width:21px;height:21px;fill:#6FD6FF}
+.nav-b{flex:1;min-width:0}
+.nav-b b{display:block;font-size:16px;line-height:1.2}
+.nav-b span{display:block;font-size:12.5px;color:var(--t2);margin-top:2px}
+.nav-x{
+  flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:0;cursor:pointer;
+  background:rgb(243 233 210 / .1);color:var(--cream);font-size:14px;
+}
+@media (prefers-reduced-motion:reduce){.nav-arrow{transition:none}}
+
+.spores{position:fixed;inset:0;z-index:6;pointer-events:none}
+
+/* ═══════════════════════════════════════════════════════════ hud ════════ */
+.hud{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  height:var(--hud-h);padding:var(--safe-t) 12px 0;
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(to bottom,rgb(21 9 34 / .88),rgb(21 9 34 / 0));
+  pointer-events:none;
+}
+.hud>*{pointer-events:auto}
+.brand{
+  display:flex;align-items:center;gap:9px;flex:0 1 auto;min-width:0;
+  padding:6px 12px 6px 6px;border-radius:999px;
+  background:rgb(42 20 64 / .74);
+  backdrop-filter:blur(14px) saturate(160%);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  border:1px solid var(--line);
+  transition:transform var(--d-sm) var(--ease-back),background var(--d-sm);
+}
+.brand:active{transform:scale(.96)}
+.brand img{width:34px;height:33px;border-radius:50%;flex:none}
+.brand-txt{display:flex;flex-direction:column;line-height:1.05;text-align:left}
+.brand-txt b{font-family:'Calistoga',serif;font-weight:400;font-size:14.5px;color:var(--cream);white-space:nowrap}
+.brand-txt i{font-style:normal;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-top:2px;white-space:nowrap}
+
+.hud-actions{margin-left:auto;display:flex;gap:6px;flex:none}
+/* Six controls plus a wordmark will not fit a phone. The name is the thing
+   that can go — the logo still identifies the app. */
+@media (max-width:520px){
+  html[data-view="iso"] .brand-txt{display:none}
+  html[data-view="iso"] .brand{padding:6px}
+  .hud-actions{gap:5px}
+  .ico{width:37px;height:37px}
+  .ico svg{width:17px;height:17px}
+}
+
+/* Small phones — a 320 px iPhone SE still has to work. At 520 the row only
+   just fits; below ~360 it does not, and .brand carries flex-shrink, so the
+   logo silently got squeezed to a sliver rather than anything overflowing.
+   Pinning it to flex:none makes the overflow visible instead of disguised,
+   and the tighter metrics below stop there being any. */
+@media (max-width:380px){
+  .hud{padding-left:8px;padding-right:8px;gap:6px}
+  .hud-actions{gap:4px}
+  .ico{width:36px;height:36px}
+  .ico svg{width:16px;height:16px}
+  .brand{flex:none;padding:5px}
+  .brand img{width:28px;height:27px}
+
+}
+.ico{
+  width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:50%;
+  background:rgb(42 20 64 / .74);border:1px solid var(--line);
+  backdrop-filter:blur(14px) saturate(160%);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  transition:transform var(--d-micro) var(--ease-back),background var(--d-sm),border-color var(--d-sm);
+}
+.ico svg{width:19px;height:19px;fill:none;stroke:var(--cream);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ico:active{transform:scale(.9)}
+.ico[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard)}
+.ico[aria-pressed="true"] svg{stroke:var(--soil-800)}
+
+/* ═══════════════════════════════════════════════════════════ search ═════ */
+.search{
+  position:fixed;inset:0;z-index:60;
+  background:rgb(21 9 34 / .93);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:calc(var(--safe-t) + 12px) 14px 0;
+  display:flex;flex-direction:column;
+  animation:fade var(--d-sm) var(--ease-out);
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--soil-700);border:1px solid var(--line-hi);
+  border-radius:var(--r-lg);padding:11px 14px;
+}
+.search-ico{width:18px;height:18px;flex:none;fill:none;stroke:var(--t3);stroke-width:1.8;stroke-linecap:round}
+.search-bar input{flex:1;min-width:0;font-size:16.5px;color:var(--cream)}
+.search-bar input::placeholder{color:var(--t4)}
+.search-bar input::-webkit-search-cancel-button{display:none}
+.search-close{font-size:14px;color:var(--mustard);font-weight:600;flex:none}
+.search-results{flex:1;overflow-y:auto;padding:14px 0 40px;-webkit-overflow-scrolling:touch}
+
+/* ═══════════════════════════════════════════════════════ bottom sheet ═══
+   The underground. Rises from below; never slides sideways.               */
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  height:92dvh;
+  display:flex;flex-direction:column;
+  background:
+    radial-gradient(140% 60% at 50% 0%, var(--soil-600) 0%, transparent 55%),
+    var(--soil-800);
+  border-top:1px solid var(--line-hi);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  box-shadow:0 -18px 50px rgb(10 4 18 / .55), 0 -1px 0 rgb(247 232 175 / .06) inset;
+  transform:translateY(calc(100% - var(--peek)));
+  transition:transform var(--d-md) var(--ease-out);
+  touch-action:none;
+}
+.sheet[data-state="half"]{transform:translateY(46dvh)}
+.sheet[data-state="full"]{transform:translateY(0)}
+.sheet.is-dragging{transition:none}
+
+/*
+ * A 4px line is a convention, not an instruction. People tap before they drag,
+ * and nothing here said what was underneath — so the sheet read as decoration
+ * and the programme stayed hidden. The bar keeps its meaning for anyone who
+ * knows it; the label tells everyone else what they are pulling up, and the
+ * whole strip is now a 44px target instead of 24.
+ */
+.sheet-grip{
+  height:44px;flex:none;cursor:grab;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+}
+.sheet-grip span{
+  width:42px;height:4px;border-radius:99px;background:var(--line-hi);
+  transition:width var(--d-sm) var(--ease-out),background var(--d-sm);
+}
+.grip-hint{
+  font-style:normal;font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--t4);white-space:nowrap;
+  transition:opacity var(--d-md) var(--ease-out);
+}
+/* Once it is open the label has done its job and would only be clutter, but it
+   keeps its space so opening does not shift the content under it. */
+.sheet:not([data-state="peek"]) .grip-hint{opacity:0}
+.sheet[data-state="full"] .sheet-grip span{width:26px;background:var(--t4)}
+
+/* One slow nudge on arrival, so the eye catches that it moves at all. */
+@keyframes gripNudge{
+  0%,72%,100%{transform:translateY(0)}
+  80%{transform:translateY(-5px)}
+  90%{transform:translateY(-2px)}
+}
+.sheet[data-state="peek"] .sheet-grip{animation:gripNudge 4.2s var(--ease-out) 1.4s 2}
+@media (prefers-reduced-motion:reduce){.sheet-grip{animation:none!important}}
+
+/* ── now strip: what is happening, right now ─────────────────────────── */
+.now{
+  flex:none;padding:2px 16px 12px;
+  display:flex;align-items:center;gap:12px;min-height:56px;
+}
+.now-pulse{
+  position:relative;width:9px;height:9px;flex:none;border-radius:50%;
+  background:var(--mustard);
+}
+.now-pulse::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1.5px solid var(--mustard);
+  animation:ping2 2.2s var(--ease-out) infinite;
+}
+@keyframes ping2{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2.1);opacity:0}}
+.now-body{flex:1;min-width:0}
+.now-body .eyebrow{display:flex;align-items:center;gap:7px}
+.now-title{
+  font-family:'Calistoga',serif;font-size:clamp(16px,4.6vw,19px);
+  color:var(--cream);margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.now-meta{font-size:12.5px;color:var(--t3);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-count{
+  flex:none;text-align:right;font-size:11px;color:var(--t3);line-height:1.25;
+}
+.now-count b{display:block;font-size:17px;color:var(--mustard);font-weight:600}
+.now-go{
+  flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:var(--mustard);
+  transition:transform var(--d-micro) var(--ease-back);
+}
+.now-go:active{transform:scale(.88)}
+.now-go svg{width:16px;height:16px;fill:none;stroke:var(--soil-800);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── tabs ─────────────────────────────────────────────────────────────── */
+.tabs{
+  flex:none;display:flex;gap:2px;padding:0 10px 10px;
+  overflow-x:auto;scrollbar-width:none;
+  border-bottom:1px solid var(--line);
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:none;padding:8px 11px;border-radius:999px;
+  font-size:12.5px;font-weight:600;letter-spacing:0;color:var(--t3);
+  border:1px solid transparent;
+  transition:color var(--d-sm),background var(--d-sm),border-color var(--d-sm),transform var(--d-micro) var(--ease-back);
+  display:flex;align-items:center;gap:6px;
+}
+.tab:active{transform:scale(.95)}
+.tab.is-on{color:var(--soil-800);background:var(--cream);border-color:var(--cream)}
+.tab em{
+  font-style:normal;font-size:10.5px;font-weight:700;
+  min-width:17px;height:17px;padding:0 5px;border-radius:99px;
+  display:grid;place-items:center;
+  background:var(--mustard);color:var(--soil-800);
+}
+.tab.is-on em{background:var(--soil-500);color:var(--cream)}
+.tab em:empty{display:none}
+
+.sheet-body{
+  flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:0 0 calc(28px + var(--safe-b));
+  touch-action:pan-y;
+}
+.sheet[data-state="peek"] .sheet-body{overflow:hidden}
+.pane{padding:var(--s4) var(--s4) 0;animation:paneIn var(--d-md) var(--ease-out)}
+@keyframes paneIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ── day bar ──────────────────────────────────────────────────────────── */
+#pane-schedule{padding-top:0}
+.daybar{
+  display:flex;gap:var(--s2);margin-bottom:var(--s4);
+  position:sticky;top:0;z-index:3;
+  padding:var(--s3) 0 var(--s3);
+  /* solid, then a short fade — a translucent sticky header lets the list
+     scroll through it and the day names become unreadable */
+  background:var(--soil-800);
+  box-shadow:0 10px 12px -8px var(--soil-800), 0 1px 0 var(--line) inset;
+}
+.daybar::after{
+  content:'';position:absolute;left:0;right:0;top:100%;height:14px;
+  background:linear-gradient(to bottom,var(--soil-800),transparent);
+  pointer-events:none;
+}
+.day{
+  flex:1;padding:9px 6px;border-radius:var(--r-md);
+  border:1px solid var(--line);
+  text-align:center;line-height:1.15;
+  transition:all var(--d-sm) var(--ease-out);
+}
+.day b{display:block;font-family:'Calistoga',serif;font-size:14px;font-weight:400;color:var(--t2)}
+.day span{display:block;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--t4);margin-top:3px}
+.day.is-on{background:var(--soil-500);border-color:var(--soil-400)}
+.day.is-on b{color:var(--cream)}
+.day.is-on span{color:var(--mustard)}
+.day.is-today::after{content:'';display:block;width:4px;height:4px;border-radius:50%;background:var(--mustard);margin:5px auto 0}
+
+/* ═══════════════════════════════════════════════════ schedule rhythm ════
+   Deliberately NOT uniform cards. Meals are hairlines, sessions are cards,
+   parallel slots are a bracketed pair. The rhythm carries the information. */
+.list{display:flex;flex-direction:column}
+
+/* The timeline reads as one column: the hour right-aligned, a fixed gap, then
+   the rail. Before, the number started at 0 and the rail sat at 19px, so the
+   two were never related to each other. */
+.slot{position:relative;padding-left:64px;padding-bottom:var(--s4)}
+.slot::before{ /* the hypha running down the time gutter */
+  content:'';position:absolute;left:46px;top:7px;bottom:-4px;width:1px;
+  background:linear-gradient(to bottom,var(--line-hi),var(--line));
+}
+.slot:last-child::before{bottom:auto;height:24px}
+.slot-time{
+  position:absolute;left:0;top:0;width:36px;text-align:right;
+  font-size:11.5px;font-weight:600;color:var(--t2);
+  font-variant-numeric:tabular-nums;font-feature-settings:'tnum';
+  letter-spacing:.005em;line-height:1.25;
+}
+.slot-time i{
+  display:block;font-style:normal;font-size:9.5px;color:var(--t4);
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:1px;
+}
+.slot-dot{
+  position:absolute;left:42.5px;top:7px;width:8px;height:8px;border-radius:50%;
+  background:var(--soil-800);box-shadow:0 0 0 1.5px var(--line-hi);
+}
+.slot.is-now .slot-dot{background:var(--mustard);box-shadow:0 0 0 1.5px var(--mustard),0 0 12px rgb(227 185 41 / .6)}
+.slot.is-now .slot-time{color:var(--mustard)}
+.slot.is-past{opacity:.42}
+
+/* meals + logistics: a hairline, not a card */
+.thin{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 12px;border-radius:var(--r-sm);
+  background:rgb(247 232 175 / .035);
+  border-left:2px solid var(--k-meal);
+}
+.thin b{font-weight:600;font-size:13.5px;color:var(--t2);letter-spacing:.01em}
+.thin span{font-size:11.5px;color:var(--t4);margin-left:auto;flex:none}
+
+/* the real cards */
+.card{
+  position:relative;display:block;width:100%;text-align:left;
+  cursor:pointer;
+  padding:var(--s3) var(--s4) var(--s4);border-radius:var(--r-md);
+  background:linear-gradient(160deg,rgb(87 49 128 / .30),rgb(55 25 79 / .40));
+  border:1px solid var(--line);
+  border-left:3px solid var(--k,var(--mustard));
+  transition:transform var(--d-sm) var(--ease-out),border-color var(--d-sm),background var(--d-sm);
+  overflow:hidden;
+}
+.card:active{transform:scale(.985)}
+@media (hover:hover){
+  .card:hover{border-color:var(--line-hi);background:linear-gradient(160deg,rgb(87 49 128 / .42),rgb(55 25 79 / .5))}
+  .card:hover h3{color:var(--mustard-hi)}
+}
+/* a quiet chevron so a card reads as something you can open */
+.card::after{
+  content:'';position:absolute;right:12px;bottom:12px;
+  width:7px;height:7px;border-right:1.5px solid var(--t4);border-bottom:1.5px solid var(--t4);
+  transform:rotate(-45deg);transition:transform var(--d-sm) var(--ease-out),border-color var(--d-sm);
+}
+.card:hover::after{border-color:var(--mustard);transform:rotate(-45deg) translate(2px,2px)}
+
+/* session detail */
+.shead{margin-bottom:18px}
+.shead .when{
+  display:inline-flex;align-items:center;gap:8px;margin-bottom:9px;
+  font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--soil-800);background:var(--mustard);padding:5px 11px;border-radius:99px;
+}
+.shead h2{font-size:clamp(23px,6.6vw,31px);color:var(--cream);text-wrap:balance}
+.shead .sub2{font-family:'Josefin Sans',sans-serif;font-size:15px;color:var(--t3);margin-top:5px}
+.shead .host2{font-size:15px;color:var(--t2);margin-top:12px}
+.shead .blurb2{font-size:14.5px;color:var(--t2);margin-top:12px;line-height:1.6;text-wrap:pretty}
+.meta-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.live-now{
+  display:flex;align-items:center;gap:8px;margin-top:14px;
+  font-size:12.5px;font-weight:700;color:var(--mustard);
+}
+.card+.card{margin-top:var(--s2)}
+.card-top{display:flex;align-items:flex-start;gap:10px}
+.card h3{
+  font-size:clamp(15px,4.2vw,16.5px);color:var(--cream);flex:1;min-width:0;
+  text-wrap:pretty;
+}
+.card .sub{
+  display:block;font-family:'Josefin Sans',sans-serif;font-size:12px;font-weight:400;
+  color:var(--t3);margin-top:3px;letter-spacing:.01em;
+}
+.card .host{font-size:12.5px;color:var(--t2);margin-top:7px;line-height:1.4}
+.card .blurb{font-size:12.5px;color:var(--t3);margin-top:6px;line-height:1.5;text-wrap:pretty}
+.card-foot{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}
+
+.at{
+  display:inline-flex;align-items:center;gap:5px;
+  max-width:100%;min-width:0;white-space:nowrap;
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  color:var(--mustard);
+  /* 7px vertical takes the chip from 27px to 33px, and the ::after below
+     carries the rest. It navigates to a venue — worth being able to hit. */
+  padding:7px 11px 7px 9px;border-radius:99px;position:relative;
+  background:rgb(227 185 41 / .11);
+  border:1px solid rgb(227 185 41 / .22);
+  transition:background var(--d-sm),transform var(--d-micro) var(--ease-back);
+}
+.at::after{
+  content:'';position:absolute;left:0;right:0;top:50%;
+  height:44px;transform:translateY(-50%);
+}
+.at:active{transform:scale(.93)}
+.at svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* the role is redundant here — the venue page carries it */
+.at i{display:none}
+.at svg{flex:none}
+
+.track-chip{
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t3);padding:3px 7px;border-radius:5px;background:rgb(247 232 175 / .07);
+}
+
+/* star */
+.star{
+  flex:none;width:34px;height:34px;margin:-4px -4px 0 0;
+  display:grid;place-items:center;border-radius:50%;position:relative;
+  transition:transform var(--d-micro) var(--ease-back),background var(--d-sm);
+}
+/*
+ * Starring is a primary action taken one-handed, often while walking. The
+ * glyph wants to stay 34px for the layout's sake, but a 34px target is under
+ * every platform's minimum, so the hit area is grown invisibly instead. This
+ * is the fix everywhere below: extend the target, leave the design alone.
+ */
+.star::after{
+  content:'';position:absolute;left:50%;top:50%;
+  width:44px;height:44px;transform:translate(-50%,-50%);
+}
+.star svg{width:19px;height:19px;fill:none;stroke:var(--t4);stroke-width:1.7;stroke-linejoin:round;
+  transition:fill var(--d-sm) var(--ease-out),stroke var(--d-sm),transform var(--d-md) var(--ease-back)}
+.star[aria-pressed="true"] svg{fill:var(--mustard);stroke:var(--mustard);transform:scale(1.12)}
+.star:active{transform:scale(.85)}
+
+/* parallel-track bracket: you must choose one */
+/* Two things running at once. The rotated label was unreadable and collided
+   with its own bracket — a chip above the pair says the same thing plainly. */
+.fork{position:relative;padding:26px 0 var(--s1) var(--s4)}
+.fork::before{
+  content:'';position:absolute;left:4px;top:24px;bottom:8px;width:10px;
+  border:1.5px solid var(--line-hi);border-right:0;
+  border-radius:8px 0 0 8px;
+}
+.fork-label{
+  position:absolute;left:0;top:0;
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--t3);
+  padding:3px 9px;border-radius:99px;
+  background:rgb(247 232 175 / .07);border:1px solid var(--line);
+}
+.fork-label::before{
+  content:'';width:4px;height:4px;border-radius:50%;background:var(--mustard);
+}
+.card.is-clash{border-color:rgb(196 85 59 / .5)}
+.clash-note{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--rust);margin-top:8px;font-weight:600;
+}
+
+/* ═══════════════════════════════════════════════════════ venue pane ═════ */
+.vhead{margin-bottom:16px}
+.vhead .eyebrow{margin-bottom:6px}
+.vhead h2{font-size:clamp(24px,7.5vw,32px);color:var(--cream);text-wrap:balance}
+.vhead .role{
+  display:inline-block;margin-top:8px;font-size:11px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--soil-800);
+  background:var(--mustard);padding:4px 10px;border-radius:99px;
+}
+.vhead p{font-size:14px;color:var(--t2);margin-top:12px;line-height:1.55;text-wrap:pretty}
+.vhead .alias{font-size:12px;color:var(--t4);margin-top:6px;font-style:italic}
+
+.stamp-btn{
+  width:100%;margin-top:16px;padding:15px;border-radius:var(--r-md);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:'Calistoga',serif;font-size:16px;
+  background:var(--mustard);color:var(--soil-800);
+  transition:transform var(--d-micro) var(--ease-back),background var(--d-sm);
+  box-shadow:0 6px 22px rgb(227 185 41 / .22);
+}
+.stamp-btn:active{transform:scale(.97)}
+.stamp-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stamp-btn.is-done{
+  background:rgb(155 191 110 / .16);color:var(--k-lab);
+  box-shadow:none;border:1px solid rgb(155 191 110 / .3);
+}
+
+/* ═══════════════════════════════════════════ mycelium / passport ════════ */
+.myc-hero{
+  position:relative;border-radius:var(--r-lg);overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 108%,var(--soil-500),var(--soil-800));
+  border:1px solid var(--line);
+  padding:18px 16px 0;
+}
+.myc-rank{display:flex;align-items:baseline;gap:9px}
+.myc-rank h2{font-size:clamp(21px,6.4vw,26px);color:var(--cream)}
+.myc-rank span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mustard);font-weight:700}
+.myc-sub{font-size:12.5px;color:var(--t3);margin-top:5px}
+
+.myc-bar{height:5px;border-radius:99px;background:rgb(247 232 175 / .10);margin-top:14px;overflow:hidden}
+.myc-bar i{
+  display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--mustard-lo),var(--mustard-hi));
+  width:0;transition:width 900ms var(--ease-out);
+}
+.myc-canvas{width:100%;height:190px;display:block;margin-top:6px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{
+  padding:12px 10px;border-radius:var(--r-md);
+  background:rgb(247 232 175 / .04);border:1px solid var(--line);
+  text-align:center;
+}
+.stat b{display:block;font-family:'Calistoga',serif;font-size:23px;color:var(--mustard);line-height:1}
+.stat span{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);margin-top:6px}
+
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:12px}
+.badge{
+  padding:12px 8px;border-radius:var(--r-md);text-align:center;
+  background:rgb(247 232 175 / .03);border:1px dashed var(--line);
+  opacity:.45;transition:all var(--d-md) var(--ease-out);
+}
+.badge.is-got{
+  opacity:1;border-style:solid;border-color:rgb(227 185 41 / .35);
+  background:rgb(227 185 41 / .09);
+  animation:pop var(--d-md) var(--ease-back);
+}
+@keyframes pop{from{transform:scale(.86)}to{transform:scale(1)}}
+.badge .g{font-size:21px;line-height:1}
+.badge b{display:block;font-size:10.5px;font-weight:700;color:var(--t2);margin-top:6px;line-height:1.25}
+.badge span{display:block;font-size:9px;color:var(--t4);margin-top:3px;line-height:1.3}
+.badge.is-got b{color:var(--cream)}
+
+/* ═══════════════════════════════════════════════════════════ common ═════ */
+.sec{margin-top:var(--s6)}
+.sec:first-child{margin-top:6px}
+.sec>h3{
+  padding-bottom:2px;
+  font-family:'Josefin Sans',sans-serif;font-size:10.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.15em;color:var(--t3);
+  margin-bottom:11px;display:flex;align-items:center;gap:9px;
+}
+.sec>h3::after{content:'';flex:1;height:1px;background:var(--line)}
+
+.panel{
+  padding:var(--s4);border-radius:var(--r-md);
+  background:rgb(247 232 175 / .035);border:1px solid var(--line);
+}
+.panel+.panel{margin-top:var(--s2)}
+.panel h4{font-family:'Calistoga',serif;font-weight:400;font-size:16px;color:var(--cream);margin-bottom:9px}
+.panel li{list-style:none;font-size:13.5px;color:var(--t2);line-height:1.55;padding-left:16px;position:relative;text-wrap:pretty}
+.panel li+li{margin-top:7px}
+.panel li::before{
+  content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;
+  background:var(--mustard);opacity:.6;
+}
+.panel p{font-size:13.5px;color:var(--t2);line-height:1.6;text-wrap:pretty}
+.panel p+p{margin-top:9px}
+.panel--danger{background:rgb(196 85 59 / .10);border-color:rgb(196 85 59 / .28)}
+.panel--danger h4{color:#F0A48E}
+.panel--danger li::before{background:var(--rust);opacity:1}
+
+.tel{
+  display:flex;align-items:center;gap:var(--s3);
+  /* the icon centres against the whole text block, not its first line */
+  padding:var(--s3) var(--s4);border-radius:var(--r-md);
+  text-decoration:none;
+  background:linear-gradient(135deg,rgb(196 85 59 / .16),rgb(196 85 59 / .07));
+  border:1px solid rgb(196 85 59 / .3);
+  transition:transform var(--d-micro) var(--ease-back);
+}
+.tel+.tel{margin-top:var(--s2)}
+.tel:active{transform:scale(.98)}
+.tel-ico{
+  width:42px;height:42px;flex:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--rust);
+}
+.tel-ico svg{display:block;width:19px;height:19px;fill:none;stroke:var(--paper);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Scoped to .tel-txt, not `.tel span`. The icon wrapper is a span too, and a
+   bare descendant selector was overriding its display:flex and knocking the
+   glyph into the corner of its circle. */
+.tel-txt{min-width:0}
+.tel-txt b{display:block;font-size:14px;color:var(--cream);font-weight:600;line-height:1.25}
+.tel-txt span{display:block;font-size:12px;color:var(--t3);margin-top:2px;line-height:1.35}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 20px;border-radius:var(--r-md);
+  font-size:14px;font-weight:600;letter-spacing:.01em;
+  background:var(--mustard);color:var(--soil-800);
+  transition:transform var(--d-micro) var(--ease-back),background var(--d-sm),opacity var(--d-sm);
+}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.45;pointer-events:none}
+.btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn--block{width:100%}
+.btn--ghost{background:rgb(247 232 175 / .07);color:var(--cream);border:1px solid var(--line-hi)}
+.btn--sm,.btn-sm{padding:9px 14px;font-size:12.5px;border-radius:var(--r-sm)}
+.btn-row{display:flex;gap:8px;margin-top:10px}
+.btn-row .btn{flex:1}
+
+.hint{font-size:12px;color:var(--t4);line-height:1.5;margin-top:9px;text-wrap:pretty}
+
+/* offline saver */
+.saver{
+  border-radius:var(--r-md);padding:var(--s4) var(--s4) var(--s3);
+  background:linear-gradient(150deg,rgb(155 191 110 / .12),rgb(155 191 110 / .04));
+  border:1px solid rgb(155 191 110 / .26);
+}
+.saver-top{display:flex;align-items:center;gap:var(--s3)}
+.saver-ring{
+  width:46px;height:46px;flex:none;border-radius:50%;
+  display:grid;place-items:center;position:relative;isolation:isolate;
+  background:conic-gradient(from -90deg,
+    var(--k-lab) calc(var(--p,0) * 1%), rgb(247 232 175 / .10) 0);
+  transition:background var(--d-md) var(--ease-out);
+}
+.saver-ring::after{
+  content:'';position:absolute;inset:3.5px;border-radius:50%;
+  background:var(--soil-800);z-index:-1;
+}
+.saver-ring svg{
+  width:19px;height:19px;fill:none;stroke:var(--k-lab);
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+/* Scoped to .saver-txt, not `.saver span`. The ring is a <span> too, and the
+   bare descendant selector (0,1,1) was beating .saver-ring (0,1,0) — so the
+   ring got display:block, place-items:center did nothing, and the glyph fell
+   to the top-left corner. Same collision as .tel-ico had. */
+.saver-txt{flex:1;min-width:0}
+.saver-txt b{display:block;font-size:14px;color:var(--cream)}
+.saver-txt span{display:block;font-size:12px;color:var(--t3);margin-top:2px}
+.saver.is-done{background:rgb(155 191 110 / .1)}
+
+/* search result rows */
+.row{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:12px 14px;border-radius:var(--r-md);
+  transition:background var(--d-sm);
+}
+.row+.row{margin-top:2px}
+.row:active{background:rgb(247 232 175 / .06)}
+.row-k{
+  width:36px;height:36px;flex:none;border-radius:10px;display:grid;place-items:center;
+  background:rgb(247 232 175 / .07);font-size:16px;
+}
+.row-b{flex:1;min-width:0}
+/* Child combinators, not descendants. The "not yet confirmed" marker is a
+   <span class="q"> nested inside the <b>, and a bare `.row-b span` rule caught
+   it too — display:block dropped the question mark onto a line of its own,
+   under the venue name. Third time this exact trap has bitten in this file:
+   a generic descendant rule swallowing a nested element that has its own job. */
+.row-b > b{display:block;font-size:14px;color:var(--cream);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-b > span{display:block;font-size:11.5px;color:var(--t3);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* The venue-is-a-guess marker: sits on the name's baseline, reads as a note
+   rather than a heading in its own right. */
+.q{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;margin-left:5px;vertical-align:baseline;
+  border-radius:50%;background:rgb(247 232 175 / .16);
+  color:var(--t2);font-size:10px;font-weight:700;line-height:1;
+  position:relative;top:-1px;
+}
+
+.empty{text-align:center;padding:44px 24px;color:var(--t4)}
+.empty .g{font-size:34px;opacity:.5}
+.empty p{font-size:13.5px;margin-top:12px;line-height:1.55;text-wrap:balance}
+
+.q{
+  display:inline-grid;place-items:center;width:14px;height:14px;flex:none;
+  border-radius:50%;background:rgb(247 232 175 / .12);
+  font-size:9px;font-weight:700;color:var(--t3);margin-left:1px;
+}
+
+/* ═══════════════════════════════════════════════════════════ toasts ═════ */
+.toasts{
+  position:fixed;left:0;right:0;bottom:calc(var(--peek) + 14px);z-index:80;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  pointer-events:none;padding:0 16px;
+}
+.toast{
+  max-width:min(92vw,400px);
+  padding:11px 17px;border-radius:99px;
+  background:var(--soil-600);border:1px solid var(--line-hi);
+  box-shadow:0 10px 34px rgb(10 4 18 / .5);
+  font-size:13px;color:var(--cream);text-align:center;
+  animation:toastIn var(--d-md) var(--ease-back);
+  display:flex;align-items:center;gap:9px;
+}
+.toast.is-out{animation:toastOut var(--d-sm) var(--ease-in-out) forwards}
+.toast b{color:var(--mustard);font-weight:700}
+@keyframes toastIn{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+
+/* ═══════════════════════════════════════════════════════════ install ════ */
+.install{
+  position:fixed;left:12px;right:12px;bottom:calc(var(--peek) + 12px);z-index:70;
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:var(--r-lg);
+  background:var(--soil-600);border:1px solid var(--line-hi);
+  box-shadow:0 14px 44px rgb(10 4 18 / .55);
+  animation:toastIn var(--d-lg) var(--ease-back);
+}
+.install img{width:40px;height:38px;flex:none;border-radius:50%}
+.install div{flex:1;min-width:0}
+.install b{display:block;font-size:13.5px;color:var(--cream)}
+.install span{display:block;font-size:11.5px;color:var(--t3);margin-top:2px;line-height:1.4}
+.install-x{
+  position:absolute;top:-9px;right:-5px;width:26px;height:26px;border-radius:50%;
+  background:var(--soil-700);border:1px solid var(--line-hi);
+  font-size:16px;line-height:1;color:var(--t3);
+}
+
+/* ═══════════════════════════════════════════════════════════ edit mode ══ */
+.hs.is-editing{cursor:grab}
+.hs.is-editing .hs-chip,.am.is-editing .am-inner{
+  box-shadow:0 0 0 2px #6FD6FF,0 0 14px rgb(111 214 255 / .5)!important;
+  animation:none;cursor:grab;
+}
+.editbar{
+  position:fixed;left:12px;right:12px;bottom:calc(12px + var(--safe-b));z-index:90;
+  padding:12px 14px;border-radius:var(--r-md);
+  background:#0E2A38;border:1px solid #6FD6FF;
+  font-size:12px;color:#CFEFFF;display:flex;align-items:center;gap:10px;
+}
+.editbar b{color:#6FD6FF}
+.editbar button{margin-left:auto;flex:none;padding:8px 13px;border-radius:8px;
+  background:#6FD6FF;color:#0E2A38;font-weight:700;font-size:12px}
+
+/* ═══════════════════════════════════════════════════════ wider screens ══
+   Not a "bigger phone" — the sheet becomes a docked rail beside the map.
+
+   The second condition catches a phone held sideways. At 812x375 the bottom
+   sheet is taller than the screen, so its tab row was being cut in half — and
+   turning the phone to see more map is exactly when you least want the
+   navigation to disappear. Sideways there is width to spare, so it gets the
+   same rail the desktop does.                                              */
+@media (min-width:820px), (min-width:560px) and (max-height:540px){
+  :root{--peek:100%}
+  .sheet{
+    left:auto;right:0;top:0;bottom:0;
+    width:min(430px,40vw);height:100dvh;
+    border-radius:var(--r-xl) 0 0 var(--r-xl);
+    border-top:0;border-left:1px solid var(--line-hi);
+    transform:none!important;
+    box-shadow:-18px 0 50px rgb(10 4 18 / .5);
+  }
+  .sheet-grip{display:none}
+  /* The docked rail is always open, but data-state stays at whatever the
+     phone layout last set — so clear the peek rule or the panel cannot
+     scroll on desktop. */
+  .sheet[data-state] .sheet-body{overflow-y:auto;padding-top:6px}
+  .now{padding-top:calc(var(--safe-t) + 14px)}
+  .toasts,.install{right:auto;left:16px;width:min(400px,42vw);bottom:20px}
+  .toasts{align-items:flex-start}
+  /* --peek is 100% here, so anything anchored to it lands off the top of the
+     screen. The rail is on the right, so these just sit above the map. */
+  .locate{bottom:24px;left:24px}
+  .nav-band{left:24px;right:auto;width:min(400px,42vw);bottom:84px}
+  .stage{right:min(430px,40vw)}
+  .search{right:min(430px,40vw)}
+}
+
+/* ═══════════════════════════════════════════════════ reduced motion ═════ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+  .hs{opacity:1}
+}
+
+/* ═══════════════════════════════════════════════════ logo animation ═════
+   Keyframes for the vector lockup mounted by js/logo.js.
+   `sprout` grows each letter up out of the baseline, which suits a festival
+   about things pushing out of the ground; `settle` is the calmer drop-in.  */
+
+@keyframes ss-letter-sprout{
+  0%  {opacity:0;transform:translateY(10px) scaleY(.55) scaleX(.9) rotate(-4deg)}
+  60% {opacity:1}
+  100%{opacity:1;transform:none}
+}
+@keyframes ss-letter-settle{
+  0%  {opacity:0;transform:translateY(-14px) scale(.8) rotate(5deg)}
+  60% {opacity:1}
+  100%{opacity:1;transform:none}
+}
+@keyframes ss-letter-bump{
+  0%,100%{transform:none}
+  40%    {transform:translateY(-4px) scale(1.09) rotate(-3deg)}
+}
+@keyframes ss-fade-up{
+  from{opacity:0;transform:translateY(7px)}
+  to  {opacity:1;transform:none}
+}
+
+.ss-letter{transform-box:fill-box}
+.ss-lockup{display:flex;flex-direction:column;align-items:center;gap:8px;width:min(74vw,340px)}
+.ss-lockup .ss-wordmark{width:100%}
+.ss-lockup .ss-tagline{width:82%}
+.ss-lockup .ss-roots{width:62%;margin-top:-2px;opacity:.9}
+
+@media (prefers-reduced-motion:reduce){
+  .ss-letter{opacity:1!important;animation:none!important;transform:none!important}
+}
+
+/* ═══════════════════════════════════════════════ find your way ══════════
+   The practical navigator in Care: two taps from anywhere to a toilet, a
+   tap, or the medical kit. Ordered by urgency, not alphabetically.       */
+.finder{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+.find{
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:12px 12px 11px;border-radius:var(--r-md);text-align:left;
+  background:rgb(247 232 175 / .045);border:1px solid var(--line);
+  transition:transform var(--d-micro) var(--ease-back),background var(--d-sm),border-color var(--d-sm);
+}
+.find:active{transform:scale(.96)}
+.find-g{font-size:19px;line-height:1;margin-bottom:5px}
+.find b{font-size:13.5px;font-weight:700;color:var(--cream);letter-spacing:.005em}
+.find-n{font-size:10.5px;color:var(--t4);letter-spacing:.02em}
+.find[data-type="firstaid"]{background:rgb(196 85 59 / .12);border-color:rgb(196 85 59 / .3)}
+.find[data-type="firstaid"] b{color:#F0A48E}
+@media (hover:hover){
+  .find:hover{background:rgb(247 232 175 / .09);border-color:var(--line-hi)}
+}
+
+/* the marker you were sent to, so it is obvious which one answered */
+.am.is-lit .am-inner{
+  background:var(--mustard);border-color:var(--soil-800);
+  animation:am-found 1.6s var(--ease-out) 3;
+}
+.am.is-lit svg{stroke:var(--soil-800)}
+@keyframes am-found{
+  0%,100%{box-shadow:0 0 0 0 rgb(227 185 41 / .55)}
+  50%    {box-shadow:0 0 0 9px rgb(227 185 41 / 0)}
+}
+
+/* ═══════════════════════════════════════════════ camera + layers ════════
+   The isometric controls only exist when there is a camera to control, so
+   they are hidden unless the document says the farm is standing up.      */
+html:not([data-view="iso"]) .ico--iso{display:none}
+html:not([data-view="iso"]) .layers .iso-only{display:none}
+
+.layers{
+  position:fixed;top:calc(var(--hud-h) + 6px);right:12px;z-index:30;
+  min-width:212px;padding:12px 14px;border-radius:var(--r-md);
+  background:rgb(31 13 49 / .94);border:1px solid var(--line-hi);
+  backdrop-filter:blur(16px) saturate(160%);
+  -webkit-backdrop-filter:blur(16px) saturate(160%);
+  box-shadow:0 14px 40px rgb(10 4 18 / .55);
+  animation:toastIn var(--d-sm) var(--ease-back);
+}
+.layers-title{
+  font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:9px;
+}
+.layers label{
+  display:flex;align-items:center;gap:9px;padding:6px 0;
+  font-size:13.5px;color:var(--t2);cursor:pointer;
+}
+.layers input{
+  appearance:none;width:17px;height:17px;flex:none;border-radius:5px;
+  border:1.5px solid var(--line-hi);background:transparent;cursor:pointer;
+  transition:background var(--d-micro),border-color var(--d-micro);
+}
+.layers input:checked{background:var(--mustard);border-color:var(--mustard)}
+.layers input:checked::after{
+  content:'';display:block;width:100%;height:100%;
+  background:no-repeat center/11px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F0D31' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+}
+.layers label:hover{color:var(--cream)}
+
+/* layer switches that live in the DOM rather than the renderer */
+.hotspots.no-labels .hs-chip,
+.hotspots.no-labels .hs-stem{opacity:0;pointer-events:none}
+.hotspots.no-amenities .am{opacity:0!important;pointer-events:none}
+
+/* ═══════════════════════════════════════════════════════════ compass ════
+   Shows where north went and takes you back — and squashes with the tilt,
+   so the control itself tells you how far the camera has leaned over.    */
+/* The compass sat at 22px while every sibling shrank to 17px on a phone,
+   because this rule comes after the responsive .ico svg one and wins on equal
+   specificity — so it read as one icon out of line in the row. Inherit the
+   row's size instead of restating it. */
+.compass svg{width:inherit;height:inherit}
+.compass .compass-rose{width:22px;height:22px}
+@media (max-width:520px){ .compass .compass-rose{width:19px;height:19px} }
+@media (max-width:380px){ .compass .compass-rose{width:18px;height:18px} }
+.compass-rose{transition:transform var(--d-sm) var(--ease-out);transform-origin:50% 50%}
+.compass-rose circle{fill:none;stroke:var(--t4);stroke-width:1.2}
+.compass-rose .needle-n{fill:var(--rust);stroke:none}
+.compass-rose .needle-s{fill:var(--t3);stroke:none}
+.compass.is-turned{border-color:var(--mustard)}
+.compass.is-turned .compass-rose circle{stroke:var(--mustard)}
+
+/* ═══════════════════════════════════════════════════════════ torch ══════
+   Amber by default: white light wrecks night vision, and people are walking
+   back to tents through a forest.                                        */
+.torch{
+  position:fixed;inset:0;z-index:300;
+  display:grid;place-items:center;gap:var(--s5);
+  cursor:pointer;
+}
+.torch[data-mode="amber"]{background:#FFB733}
+.torch[data-mode="white"]{background:#FFFDF6}
+.torch-swap{
+  padding:var(--s3) var(--s5);border-radius:99px;
+  font-size:14px;font-weight:700;letter-spacing:.04em;
+  background:rgb(0 0 0 / .13);color:rgb(40 22 0 / .82);
+  border:1.5px solid rgb(40 22 0 / .18);
+}
+.torch-hint{
+  position:absolute;bottom:calc(var(--s7) + var(--safe-b));
+  font-size:12.5px;letter-spacing:.06em;color:rgb(40 22 0 / .45);
+}
+
+/* ══════════════════════════════════════════════ care quick actions ══════ */
+.quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:var(--s2)}
+.quick-b{
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:var(--s3) var(--s4) var(--s4);border-radius:var(--r-md);text-align:left;
+  background:rgb(247 232 175 / .05);border:1px solid var(--line);
+  transition:transform var(--d-micro) var(--ease-back),background var(--d-sm),border-color var(--d-sm);
+}
+.quick-b:active{transform:scale(.97)}
+.quick-g{font-size:21px;line-height:1;margin-bottom:var(--s2)}
+.quick-b b{font-size:14.5px;color:var(--cream);font-weight:700;line-height:1.2}
+.quick-b>span:last-child{font-size:11.5px;color:var(--t3);margin-top:3px;line-height:1.35}
+.quick-b--sos{background:rgb(196 85 59 / .14);border-color:rgb(196 85 59 / .34)}
+.quick-b--sos b{color:#F3AE9A}
+@media (hover:hover){.quick-b:hover{border-color:var(--line-hi);background:rgb(247 232 175 / .09)}}
+
+.tel--calm{
+  background:rgb(247 232 175 / .045);border-color:var(--line);
+}
+.tel--calm .tel-ico{background:var(--soil-400)}
+
+/* ═════════════════════════════════════════════════════ now filter ══════ */
+.day--now b{color:var(--mustard)}
+.day--now.is-on{background:var(--mustard);border-color:var(--mustard)}
+.day--now.is-on b,.day--now.is-on span{color:var(--soil-800)}
+
+/* ═════════════════════════════════════════════════════ notes + fields ══ */
+.note-box{
+  width:100%;padding:var(--s3);border-radius:var(--r-md);resize:vertical;
+  background:rgb(247 232 175 / .05);border:1px solid var(--line);
+  color:var(--cream);font-family:inherit;font-size:14px;line-height:1.5;
+}
+.note-box::placeholder{color:var(--t4)}
+.note-box:focus{outline:none;border-color:var(--mustard);background:rgb(247 232 175 / .08)}
+
+.light-row{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);text-align:center}
+.light-row b{display:block;font-family:'Calistoga',serif;font-size:19px;color:var(--mustard)}
+.light-row span{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t4);margin-top:4px}
+
+.toggle{display:flex;align-items:flex-start;gap:var(--s3);cursor:pointer}
+.toggle input{
+  appearance:none;width:19px;height:19px;flex:none;margin-top:2px;border-radius:6px;
+  border:1.5px solid var(--line-hi);background:transparent;cursor:pointer;
+}
+.toggle input:checked{background:var(--mustard);border-color:var(--mustard)}
+.toggle input:checked::after{
+  content:'';display:block;width:100%;height:100%;
+  background:no-repeat center/12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F0D31' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+}
+.toggle b{display:block;font-size:14px;color:var(--cream)}
+.toggle>span>span{display:block;font-size:12.5px;color:var(--t3);margin-top:3px;line-height:1.5}
+
+.field{display:block}
+.field>span{display:block;font-size:12.5px;color:var(--t3);margin-bottom:var(--s2)}
+.field input{
+  width:100%;padding:var(--s3);border-radius:var(--r-md);
+  background:rgb(247 232 175 / .05);border:1px solid var(--line);
+  color:var(--cream);font-size:15px;
+}
+.field input:focus{outline:none;border-color:var(--mustard)}
+
+/* ══════════════════════════════════════════════════ battery saver ══════
+   Everything decorative stops. The map, the schedule and the numbers stay. */
+html[data-saver="1"] .spores{display:none}
+html[data-saver="1"] .sky{background:linear-gradient(to bottom,#1A1009,#2A1B10 55%,#5A3620)}
+html[data-saver="1"] .hs-dot{animation:none}
+html[data-saver="1"] .now-pulse::after{animation:none}
+html[data-saver="1"] *{animation-duration:.01ms!important;animation-iteration-count:1!important}
+
+
+/* ═════════════════════════════════════════════════ small phones, part 2 ══
+   These have to come after the base .tab rule: a media query adds no
+   specificity, so an equally-specific rule later in the file simply wins.
+   Five tabs overflow 320 px, and although the row scrolls, a clipped
+   "About" reads as breakage — nobody goes looking for a horizontal scroll
+   they were never told about.                                             */
+@media (max-width:380px){
+  .tabs{padding-left:8px;padding-right:8px;gap:1px}
+  .tab{padding:7px 7px;font-size:11.5px}
+}
+
+/* The same five tabs also have to fit the docked rail, which is ~325 px on a
+   sideways phone regardless of how wide the viewport is. That is a container
+   problem, not a viewport one — so ask the container. */
+.sheet{container-type:inline-size;container-name:sheet}
+@container sheet (max-width:390px){
+  .tabs{padding-left:8px;padding-right:8px;gap:1px}
+  .tab{padding:7px 7px;font-size:11.5px}
+}
+
+
+/* ────────────────────────────────────────────────── a photo of the place ─── */
+/*
+ * Taken on the recce, standing on the pin itself — so it shows the place as
+ * you will actually see it when you arrive, rather than a staged shot from a
+ * flattering angle. Full-bleed against the pane's padding, because a photo
+ * boxed in with margins reads as a thumbnail rather than as the place.
+ */
+.vshot{
+  margin:calc(var(--s4) * -1) calc(var(--s4) * -1) var(--s4);
+  border-radius:0 0 var(--r-lg) var(--r-lg);
+  overflow:hidden;background:var(--soil-700);
+  animation:vshotIn var(--d-lg) var(--ease-out);
+}
+.vshot img{
+  display:block;width:100%;height:clamp(140px,26vh,230px);object-fit:cover;
+}
+@keyframes vshotIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.vshot{animation:none}}
+
+/* An inline "do the thing" inside a sentence of explanation. */
+.linkish{
+  background:none;border:0;padding:0;font:inherit;cursor:pointer;
+  color:var(--mustard);text-decoration:underline;text-underline-offset:2px;
+}
+
+
+/* lite: the sides fold away, leaving the top face flat on */
+.ico--mode[data-mode="lite"] .mode-side,
+.ico--mode[data-mode="lite"] .mode-side2{opacity:0}

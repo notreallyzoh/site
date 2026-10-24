@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>Shroom Sabha 2026 — Farm Map</title>
+<meta name="description" content="Interactive map and schedule for Shroom Sabha 2026 at Varanashi Organic Farm. Works offline.">
+<meta name="theme-color" content="#2A1440">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shroom Sabha">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="preview.css">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+<link rel="preload" href="assets/fonts/josefinsans-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/calistoga-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+<script src="vendor/p5.min.js" defer></script>
+</head>
+<body>
+<aside class="preview-notice">Portfolio demo · September 2026 archive · calls & GPS disabled <a href="../../#work" target="_top">Back to portfolio ↗</a></aside>
+
+<!-- ─────────────────────────────────────────────────────────── loading ── -->
+<div id="boot" class="boot">
+  <div class="boot-inner">
+    <div class="ss-lockup">
+      <div class="ss-wordmark" id="bootWordmark"></div>
+      <div class="ss-tagline" id="bootTagline"></div>
+      <div class="ss-roots" id="bootRoots"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────────── sky ── -->
+<div class="sky" id="sky" aria-hidden="true"></div>
+
+<!-- ──────────────────────────────────────────────────────────────── map ── -->
+<main class="stage" id="stage">
+  <div class="map-viewport" id="viewport">
+    <!-- the farm is drawn here, live, from terrain data -->
+    <div class="map-canvas-host" id="canvasHost"
+         role="img"
+         aria-label="Living map of Varanashi Organic Farms showing the Shroom Sabha venues"></div>
+    <!-- hotspots ride on top in their own transformed layer -->
+    <div class="map-layer" id="layer">
+      <div class="hotspots" id="hotspots"></div>
+      <!-- you are here: an amanita, an honest accuracy halo, and a facing
+           cone that only appears when the phone actually knows which way
+           it is pointing -->
+      <div class="you" id="you" hidden>
+        <span class="you-halo"></span>
+        <span class="you-cone"></span>
+        <span class="you-cap">
+          <svg viewBox="0 0 28 30" aria-hidden="true">
+            <path class="stem" d="M11.4 15.5c0 4.2-.5 7.6-1.2 10.1-.3 1.1.4 2.1 1.5 2.1h4.6c1.1 0 1.8-1 1.5-2.1-.7-2.5-1.2-5.9-1.2-10.1z"/>
+            <path class="cap" d="M14 1.6c6.6 0 12 4.9 12 10.9 0 1.6-1.2 2.9-2.7 2.9H4.7C3.2 15.4 2 14.1 2 12.5 2 6.5 7.4 1.6 14 1.6z"/>
+            <circle class="spot" cx="9"  cy="9.2"  r="1.9"/>
+            <circle class="spot" cx="17.6" cy="7.6" r="1.5"/>
+            <circle class="spot" cx="21.4" cy="11.8" r="1.3"/>
+            <circle class="spot" cx="5.6" cy="12.4" r="1.1"/>
+            <circle class="spot" cx="13.4" cy="12.6" r="1.2"/>
+          </svg>
+        </span>
+      </div>
+    </div>
+  </div>
+  <button class="locate" id="locateBtn" type="button"
+          aria-label="Show where I am" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle class="lo-ring" cx="12" cy="12" r="7"/>
+      <circle class="lo-mid" cx="12" cy="12" r="2.6"/>
+      <path class="lo-tick" d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/>
+    </svg>
+    <span class="locate-spin" aria-hidden="true"></span>
+  </button>
+  <canvas class="spores" id="sporeCanvas" aria-hidden="true"></canvas>
+</main>
+
+<!-- ────────────────────────────────────────────────────────────── chrome ── -->
+<header class="hud">
+  <button class="brand" id="brandBtn" type="button" aria-label="About Shroom Sabha 2026">
+    <img src="assets/logo.webp" alt="" width="34" height="33" decoding="async">
+    <span class="brand-txt"><b>Shroom Sabha</b><i>2026 · farm map</i></span>
+  </button>
+  <div class="hud-actions">
+    <button class="ico" id="searchBtn" type="button" aria-label="Search sessions and places">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+    </button>
+    <button class="ico" id="torchBtn" type="button" aria-label="Toggle night mode" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.6 4 6.6 6.6 0 0 0 20 14.5z"/></svg>
+    </button>
+    <button class="ico ico--iso compass" id="compassBtn" type="button"
+            aria-label="Face north and stand the farm up">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="compass-rose">
+        <circle cx="12" cy="12" r="9"/>
+        <path class="needle-n" d="M12 4.5l3 7.5h-6z"/>
+        <path class="needle-s" d="M12 19.5l-3-7.5h6z"/>
+      </svg>
+    </button>
+    <button class="ico ico--iso" id="flattenBtn" type="button" aria-pressed="false"
+            aria-label="Flatten to a top-down view">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5.5-9 5.5-9-5.5z"/><path d="M3 14.5L12 20l9-5.5"/></svg>
+    </button>
+    <button class="ico" id="layerBtn" type="button" aria-expanded="false"
+            aria-controls="layers" aria-label="Choose what to show">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+    </button>
+    <button class="ico" id="fitBtn" type="button" aria-label="Reset map view">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ──────────────────────────────────────────────────────── layer panel ── -->
+<div class="layers" id="layers" hidden role="group" aria-label="Map layers">
+  <p class="layers-title">Show on the map</p>
+  <label><input type="checkbox" data-layer="labels" checked> Names</label>
+  <label><input type="checkbox" data-layer="amenities" checked> Toilets, water &amp; food</label>
+  <label><input type="checkbox" data-layer="trees" checked> Trees</label>
+  <label><input type="checkbox" data-layer="buildings" checked> Buildings</label>
+  <label><input type="checkbox" data-layer="water" checked> Water</label>
+  <label class="iso-only"><input type="checkbox" data-layer="slab" checked> Ground depth</label>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── search panel ── -->
+<div class="search" id="search" hidden>
+  <div class="search-bar">
+    <svg viewBox="0 0 24 24" aria-hidden="true" class="search-ico"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+    <input id="searchInput" type="search" placeholder="Find a session, host or place…"
+           autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    <button class="search-close" id="searchClose" type="button" aria-label="Close search">Done</button>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────── bottom sheet ── -->
+<section class="sheet" id="sheet" data-state="peek" aria-label="Festival guide">
+  <div class="sheet-grip" id="grip" role="button" tabindex="0" aria-label="Expand guide"><span></span><i class="grip-hint">Programme · places · help</i></div>
+
+  <div class="now" id="nowStrip"></div>
+
+  <nav class="tabs" id="tabs" role="tablist">
+    <button role="tab" class="tab is-on" data-tab="schedule">Schedule</button>
+    <button role="tab" class="tab" data-tab="saved">My Sabha <em id="savedCount"></em></button>
+    <button role="tab" class="tab" data-tab="places">Places</button>
+    <button role="tab" class="tab" data-tab="care">Care</button>
+    <button role="tab" class="tab" data-tab="about">About</button>
+  </nav>
+
+  <div class="sheet-body" id="sheetBody">
+    <div class="pane" id="pane-schedule" role="tabpanel">
+      <div class="daybar" id="daybar"></div>
+      <div class="list" id="scheduleList"></div>
+    </div>
+    <div class="pane" id="pane-saved" role="tabpanel" hidden></div>
+    <div class="pane" id="pane-places" role="tabpanel" hidden></div>
+    <div class="pane" id="pane-care" role="tabpanel" hidden></div>
+    <div class="pane" id="pane-about" role="tabpanel" hidden></div>
+    <div class="pane" id="pane-venue" role="tabpanel" hidden></div>
+    <div class="pane" id="pane-session" role="tabpanel" hidden></div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────────── torch ── -->
+<div class="torch" id="torch" hidden data-mode="amber" role="dialog" aria-label="Torch">
+  <button class="torch-swap" data-torch-mode type="button">Amber / White</button>
+  <p class="torch-hint">Tap anywhere to put it away</p>
+</div>
+
+<!-- ───────────────────────────────────────────────────────────── toasts ── -->
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- ──────────────────────────────────────────────── install / A2HS card ── -->
+<div class="install" id="install" hidden>
+  <img src="assets/logo.webp" alt="" width="40" height="38">
+  <div>
+    <b>Keep the map in your pocket</b>
+    <span id="installHint">Install it once and it works with no signal.</span>
+  </div>
+  <button class="btn btn-sm" id="installGo" type="button">Install</button>
+  <button class="install-x" id="installNo" type="button" aria-label="Dismiss">×</button>
+</div>
+
+<script type="module" src="js/preview.js"></script>
+<script type="module" src="js/app.js"></script>
+<noscript><p style="padding:2rem;font-family:sans-serif">This map needs JavaScript. The printed map at the gate works without it.</p></noscript>
+</body>
+</html>

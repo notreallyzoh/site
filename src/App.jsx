@@ -1,832 +1,239 @@
-import { useState, useRef, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import * as Tone from 'tone';
 import { PERSONAL, TECH_STACK, EXPERIENCES, CATEGORIES, PROJECTS, SOCIALS } from './data';
 import './App.css';
+import { localUrl, withBase } from './paths';
 
-gsap.registerPlugin(ScrollTrigger);
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NAV_ITEMS = [{id:'work', label:'Work'}, {id:'about', label:'Practice'}, {id:'experience', label:'Experience'}, {id:'contact', label:'Contact'}];
+const SCENES = [
+  { id:'mycelial-stage', name:'Mycelial Stage', role:'Live visuals · with Optikbloom & Lostkids Garage', image:'/media/mycelial-stage/stage-2.jpg' },
+  { id:'signals', name:'Signals', role:'Art assistance · Ephemeral Tomorrow', image:'/media/signals/installation-2.webp' },
+  { id:'hirist-techground', name:'hirist techground', role:'Event curation · Visual direction · Projection mapping', image:'/media/techground/02_Arrival_STILL.jpg' },
+].map(withBase);
 
-/* ═══════════════════════════════════════════════
-   AUDIO ENGINE — ambient synth via Tone.js
-   ═══════════════════════════════════════════════ */
-const AudioCtx = createContext();
-let audioInitialized = false;
-let synth, filter, reverb, bellSynth;
-
-function initAudio() {
-  if (audioInitialized) return;
-  audioInitialized = true;
-
-  reverb = new Tone.Reverb({ decay: 6, wet: 0.5 }).toDestination();
-  filter = new Tone.Filter({ frequency: 400, type: 'lowpass', rolloff: -24 }).connect(reverb);
-
-  synth = new Tone.PolySynth(Tone.FMSynth, {
-    volume: -22,
-    harmonicity: 2,
-    modulationIndex: 1.5,
-    envelope: { attack: 2, decay: 3, sustain: 0.8, release: 4 },
-    modulation: { type: 'sine' },
-    modulationEnvelope: { attack: 1, decay: 2, sustain: 0.5, release: 3 },
-  }).connect(filter);
-
-  bellSynth = new Tone.PolySynth(Tone.AMSynth, {
-    volume: -18,
-    harmonicity: 3,
-    envelope: { attack: 0.01, decay: 0.8, sustain: 0, release: 1.2 },
-  }).connect(reverb);
-
-  // Play ambient pad chord
-  synth.triggerAttack(['C3', 'E3', 'G3', 'B3']);
-}
-
-function setFilterFreq(val) {
-  if (filter) filter.frequency.rampTo(val, 0.3);
-}
-function setReverbWet(val) {
-  if (reverb) reverb.wet.rampTo(val, 0.5);
-}
-function playBell(note) {
-  if (bellSynth) bellSynth.triggerAttackRelease(note, '8n');
-}
-
-const BELL_NOTES = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6'];
-
-function AudioProvider({ children }) {
-  const [muted, setMuted] = useState(true); // start muted, user opts in
-  const [started, setStarted] = useState(false);
-
-  const toggleMute = useCallback(async () => {
-    if (!started) {
-      await Tone.start();
-      initAudio();
-      setStarted(true);
-      setMuted(false);
-      Tone.getDestination().volume.value = 0;
-    } else {
-      setMuted(m => {
-        const next = !m;
-        Tone.getDestination().volume.value = next ? -Infinity : 0;
-        return next;
-      });
-    }
-  }, [started]);
-
-  // M key shortcut
-  useEffect(() => {
-    const onKey = e => { if (e.key === 'm' || e.key === 'M') toggleMute(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [toggleMute]);
-
-  return (
-    <AudioCtx.Provider value={{ muted, started, toggleMute, setFilterFreq, setReverbWet, playBell }}>
-      {children}
-    </AudioCtx.Provider>
-  );
-}
-const useAudio = () => useContext(AudioCtx);
-
-/* ═══════════════════════════════════════════════
-   THEME
-   ═══════════════════════════════════════════════ */
-const ThemeCtx = createContext();
-function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('zoh-theme') || 'classy');
-  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('zoh-theme', theme); }, [theme]);
-  const toggle = useCallback(() => setTheme(t => t === 'classy' ? 'bold' : 'classy'), []);
-  return <ThemeCtx.Provider value={{ theme, toggle, isClassy: theme === 'classy' }}>{children}</ThemeCtx.Provider>;
-}
-const useTheme = () => useContext(ThemeCtx);
-
-/* ═══════════════════════════════════════════════
-   CURSOR TRAIL
-   ═══════════════════════════════════════════════ */
-function CursorTrail() {
-  const dotRef = useRef();
-  const ringRef = useRef();
-
-  useEffect(() => {
-    const dot = dotRef.current;
-    const ring = ringRef.current;
-    if (!dot || !ring) return;
-
-    const pos = { x: 0, y: 0 };
-    const mouse = { x: 0, y: 0 };
-
-    const onMove = (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-      gsap.to(dot, { x: mouse.x, y: mouse.y, duration: 0.1, ease: 'power2.out' });
-    };
-
-    const tick = () => {
-      pos.x += (mouse.x - pos.x) * 0.12;
-      pos.y += (mouse.y - pos.y) * 0.12;
-      gsap.set(ring, { x: pos.x, y: pos.y });
-      requestAnimationFrame(tick);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    tick();
-
-    // Scale ring on hover over links/buttons
-    const grow = () => gsap.to(ring, { scale: 1.8, opacity: 0.3, duration: 0.3 });
-    const shrink = () => gsap.to(ring, { scale: 1, opacity: 0.5, duration: 0.3 });
-    document.querySelectorAll('a, button, .work__card').forEach(el => {
-      el.addEventListener('mouseenter', grow);
-      el.addEventListener('mouseleave', shrink);
-    });
-
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-    };
-  }, []);
-
-  return (
-    <>
-      <div ref={dotRef} className="cursor-dot" />
-      <div ref={ringRef} className="cursor-ring" />
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   GSAP HELPERS
-   ═══════════════════════════════════════════════ */
-function glitchReveal(el) {
-  const orig = el.textContent;
-  const chars = '@#$%&!?<>░▒▓█▄▀';
-  return gsap.to(el, {
-    duration: 1.2,
-    onUpdate() {
-      const p = this.progress();
-      const rev = Math.floor(p * orig.length);
-      let t = '';
-      for (let i = 0; i < orig.length; i++) {
-        if (i < rev) t += orig[i];
-        else if (orig[i] === ' ') t += ' ';
-        else t += chars[Math.floor(Math.random() * chars.length)];
-      }
-      el.textContent = t;
-    },
-  });
-}
-
-/* ═══════════════════════════════════════════════
-   IMMERSIVE PARTICLE CANVAS
-   Mystical breathing particles — gentle orbit by default,
-   disturbed and expressive on interaction.
-   Modulates Tone.js ambient synth in real time.
-   ═══════════════════════════════════════════════ */
-function useImmersiveCanvas(canvasRef, audioRef) {
-  useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv) return;
-    const ctx = cv.getContext('2d');
-    let raf;
-    const dpr = window.devicePixelRatio || 1;
-    const mouse = { x: -999, y: -999, down: false };
-    const COLORS = [
-      { r: 155, g: 109, b: 255 }, // purple
-      { r: 200, g: 255, b: 0 },   // lime
-      { r: 0, g: 229, b: 204 },   // cyan
-      { r: 112, g: 64, b: 212 },  // deep purple
-      { r: 255, g: 109, b: 255 }, // pink
-      { r: 80, g: 200, b: 255 },  // sky
-    ];
-
-    function resize() {
-      cv.width = cv.offsetWidth * dpr;
-      cv.height = cv.offsetHeight * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    const W = () => cv.offsetWidth;
-    const H = () => cv.offsetHeight;
-    const CX = () => W() / 2;
-    const CY = () => H() * 0.38; // center on logo area
-
-    const bRect = () => cv.getBoundingClientRect();
-    const onMove = e => { const r = bRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; };
-    const onDown = e => { mouse.down = true; createBurst(e); };
-    const onUp = () => { mouse.down = false; };
-    const onLeave = () => { mouse.x = -999; mouse.y = -999; mouse.down = false; };
-    cv.addEventListener('mousemove', onMove);
-    cv.addEventListener('mousedown', onDown);
-    cv.addEventListener('mouseup', onUp);
-    cv.addEventListener('mouseleave', onLeave);
-    cv.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; const r = bRect(); mouse.x = t.clientX - r.left; mouse.y = t.clientY - r.top; mouse.down = true; createBurst({ clientX: t.clientX, clientY: t.clientY }); }, { passive: false });
-    cv.addEventListener('touchmove', e => { const t = e.touches[0]; const r = bRect(); mouse.x = t.clientX - r.left; mouse.y = t.clientY - r.top; }, { passive: true });
-    cv.addEventListener('touchend', () => { mouse.down = false; mouse.x = -999; mouse.y = -999; });
-
-    // Particles — gentle orbital breathing
-    const N = 80;
-    const ps = [];
-    let t = 0;
-    for (let i = 0; i < N; i++) {
-      const angle = (i / N) * Math.PI * 2 + Math.random() * 0.3;
-      const orbit = 40 + Math.random() * 120;
-      const col = COLORS[i % COLORS.length];
-      ps.push({
-        x: CX() + Math.cos(angle) * orbit,
-        y: CY() + Math.sin(angle) * orbit,
-        vx: 0, vy: 0,
-        orbit, angle,
-        speed: 0.001 + Math.random() * 0.004, // slow = mystical
-        r: 1.5 + Math.random() * 3,
-        col,
-        baseAlpha: 0.15 + Math.random() * 0.35,
-        breathPhase: Math.random() * Math.PI * 2,
-        breathSpeed: 0.008 + Math.random() * 0.012,
-      });
-    }
-
-    // Burst on click — also triggers bell note
-    function createBurst(e) {
-      const r = bRect();
-      const bx = e.clientX - r.left, by = e.clientY - r.top;
-      // Audio: play bell
-      const audio = audioRef.current;
-      if (audio?.started) {
-        const note = BELL_NOTES[Math.floor(Math.random() * BELL_NOTES.length)];
-        playBell(note);
-      }
-      for (let i = 0; i < 25; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const spd = 2 + Math.random() * 6;
-        const col = COLORS[Math.floor(Math.random() * COLORS.length)];
-        ps.push({
-          x: bx, y: by,
-          vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
-          orbit: 0, angle: 0, speed: 0,
-          r: 1 + Math.random() * 4, col,
-          baseAlpha: 0.9, breathPhase: 0, breathSpeed: 0,
-          isBurst: true, life: 1,
-          decay: 0.008 + Math.random() * 0.012,
-        });
-      }
-    }
-
-    let dragFrame = 0;
-    let disturbance = 0; // 0 = calm, 1 = very disturbed
-
-    function draw() {
-      const w = W(), h = H();
-      ctx.clearRect(0, 0, w, h);
-      t += 0.016;
-
-      // Measure disturbance from mouse proximity
-      let closestDist = 999;
-      if (mouse.x > 0) {
-        const dx = mouse.x - CX(), dy = mouse.y - CY();
-        closestDist = Math.hypot(dx, dy);
-      }
-      const targetDist = mouse.x > 0 ? Math.max(0, 1 - closestDist / 300) : 0;
-      disturbance += (targetDist - disturbance) * 0.05;
-
-      // Audio modulation
-      const audio = audioRef.current;
-      if (audio?.started) {
-        setFilterFreq(200 + disturbance * 3000);
-        setReverbWet(0.6 - disturbance * 0.4);
-      }
-
-      // Breathing global pulse
-      const breathGlobal = Math.sin(t * 0.5) * 0.15 + 0.85;
-
-      // Drag trail
-      if (mouse.down && mouse.x > 0) {
-        dragFrame++;
-        if (dragFrame % 2 === 0) {
-          const col = COLORS[Math.floor(Math.random() * COLORS.length)];
-          ps.push({
-            x: mouse.x + (Math.random() - 0.5) * 15,
-            y: mouse.y + (Math.random() - 0.5) * 15,
-            vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2 - 0.5,
-            orbit: 0, angle: 0, speed: 0,
-            r: 2 + Math.random() * 3, col,
-            baseAlpha: 0.8, breathPhase: 0, breathSpeed: 0,
-            isBurst: true, life: 1,
-            decay: 0.012 + Math.random() * 0.01,
-          });
-        }
-      } else { dragFrame = 0; }
-
-      // Connection lines
-      for (let i = 0; i < Math.min(ps.length, N); i++) {
-        for (let j = i + 1; j < Math.min(ps.length, N); j++) {
-          const d = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y);
-          if (d < 100) {
-            ctx.beginPath();
-            ctx.moveTo(ps[i].x, ps[i].y);
-            ctx.lineTo(ps[j].x, ps[j].y);
-            const lineAlpha = 0.06 * (1 - d / 100) * breathGlobal;
-            ctx.strokeStyle = `rgba(155,109,255,${lineAlpha})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
-      }
-
-      // Update & draw particles
-      for (let i = ps.length - 1; i >= 0; i--) {
-        const p = ps[i];
-
-        if (p.isBurst) {
-          p.x += p.vx; p.y += p.vy;
-          p.vx *= 0.97; p.vy *= 0.97;
-          p.vy += 0.01; // slight gravity
-          p.life -= p.decay;
-          if (p.life <= 0) { ps.splice(i, 1); continue; }
-          const { r: cr, g: cg, b: cb } = p.col;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${cr},${cg},${cb},${p.baseAlpha * p.life})`;
-          ctx.shadowColor = `rgba(${cr},${cg},${cb},0.6)`;
-          ctx.shadowBlur = 10 * p.life;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        } else {
-          // Breathing alpha
-          p.breathPhase += p.breathSpeed;
-          const breath = Math.sin(p.breathPhase) * 0.3 + 0.7;
-          const alpha = p.baseAlpha * breath * breathGlobal;
-
-          // Mystical slow orbit (speed increases with disturbance)
-          const speedMult = 1 + disturbance * 4;
-          p.angle += p.speed * speedMult;
-          const wobble = Math.sin(t * 0.3 + p.breathPhase) * 8; // gentle wobble
-          const tx = CX() + Math.cos(p.angle) * (p.orbit + wobble);
-          const ty = CY() + Math.sin(p.angle) * (p.orbit + wobble);
-          p.vx += (tx - p.x) * 0.02;
-          p.vy += (ty - p.y) * 0.02;
-
-          // Mouse repulsion — stronger when closer
-          if (mouse.x > 0) {
-            const dx = p.x - mouse.x, dy = p.y - mouse.y;
-            const d = Math.hypot(dx, dy);
-            if (d < 120 && d > 0) {
-              const force = (120 - d) / 120 * (1.5 + disturbance * 2);
-              p.vx += (dx / d) * force;
-              p.vy += (dy / d) * force;
-            }
-          }
-
-          p.vx *= 0.93; p.vy *= 0.93;
-          p.x += p.vx; p.y += p.vy;
-
-          const { r: cr, g: cg, b: cb } = p.col;
-          const glowR = p.r * (1 + disturbance * 0.5);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
-          ctx.shadowColor = `rgba(${cr},${cg},${cb},${alpha * 0.5})`;
-          ctx.shadowBlur = 8 + disturbance * 12;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-      }
-
-      // Center glow — breathes
-      const glowSize = 120 + disturbance * 60;
-      const g = ctx.createRadialGradient(CX(), CY(), 5, CX(), CY(), glowSize);
-      g.addColorStop(0, `rgba(155,109,255,${0.06 * breathGlobal})`);
-      g.addColorStop(0.4, `rgba(0,229,204,${0.02 * breathGlobal})`);
-      g.addColorStop(1, 'transparent');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-
-      // Mouse hover ring — gentle
-      if (mouse.x > 0 && !mouse.down) {
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 20 + disturbance * 15, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(200,255,0,${0.1 + disturbance * 0.15})`;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-      }
-
-      raf = requestAnimationFrame(draw);
-    }
-    draw();
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-      cv.removeEventListener('mousemove', onMove);
-      cv.removeEventListener('mousedown', onDown);
-      cv.removeEventListener('mouseup', onUp);
-      cv.removeEventListener('mouseleave', onLeave);
-    };
-  }, [canvasRef, audioRef]);
-}
-
-/* ═══════════════════════════════════════════════
-   NAV
-   ═══════════════════════════════════════════════ */
-const SECS = [
-  { id: 'hero', label: 'Home', n: '00' },
-  { id: 'about', label: 'About', n: '01' },
-  { id: 'work', label: 'Work', n: '02' },
-  { id: 'experience', label: 'Exp', n: '03' },
-  { id: 'contact', label: 'Contact', n: '04' },
-];
+function Arrow({ diagonal = false }) { return <span className="arrow" aria-hidden="true">{diagonal ? '↗' : '→'}</span>; }
 
 function Nav() {
-  const { toggle, isClassy } = useTheme();
-  const [active, setActive] = useState('hero');
   const [open, setOpen] = useState(false);
-
+  const [active, setActive] = useState('');
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('zoh-theme') || 'classy'; } catch { return 'classy'; }
+  });
+  const menuRef = useRef();
+  const burgerRef = useRef();
   useEffect(() => {
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
-    }, { threshold: 0.25 });
-    SECS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
-    return () => obs.disconnect();
-  }, []);
-
-  const go = id => { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); setOpen(false); };
-
-  return (
-    <nav className={`nav ${open ? 'nav--open' : ''}`}>
-      <div className="nav__logo" onClick={() => go('hero')}>
-        <span className="nav__logo-at mono">@</span>
-        <span className="nav__logo-name mono">notreallyzoh</span>
-      </div>
-      <button className="nav__burger" onClick={() => setOpen(!open)} aria-label="Menu">
-        <span /><span /><span />
-      </button>
-      <div className="nav__links">
-        {SECS.map(s => (
-          <button key={s.id} className={`nav__link mono ${active === s.id ? 'active' : ''}`} onClick={() => go(s.id)}>
-            <span className="nav__n">{s.n}</span>{s.label}
-            {active === s.id && <span className="nav__dot" />}
-          </button>
-        ))}
-        <a href="/resume.pdf" download className="neo-btn neo-btn--outline nav__resume">
-          Resume ↓
-        </a>
-      </div>
-      <button className="nav__theme glass" onClick={toggle} aria-label="Toggle theme">
-        <span>{isClassy ? '◐' : '◑'}</span>
-        <span className="mono nav__theme-label">{isClassy ? 'CLASSY' : 'BOLD'}</span>
-      </button>
-      <MuteButton />
-    </nav>
-  );
-}
-
-function MuteButton() {
-  const { muted, started, toggleMute } = useAudio();
-  return (
-    <button className="nav__mute glass" onClick={toggleMute} aria-label="Toggle sound" title="Press M to toggle">
-      <span>{!started || muted ? '🔇' : '🔊'}</span>
-    </button>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   HERO — immersive full-screen particle playground
-   ═══════════════════════════════════════════════ */
-function Hero() {
-  const morphRef = useRef(null);
-  const logoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [loaded, setLoaded] = useState(false);
-  const { started, muted } = useAudio();
-  const audioStateRef = useRef({ started, muted });
-  audioStateRef.current = { started, muted };
-
-  useImmersiveCanvas(canvasRef, audioStateRef);
-
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('zoh-theme', theme); } catch { /* Storage may be disabled. */ }
+  }, [theme]);
   useEffect(() => {
-    const timer = setTimeout(() => setLoaded(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    const lines = document.querySelectorAll('.hero__line');
-    lines.forEach(line => glitchReveal(line));
-  }, [loaded]);
-
-  // Morphing role loop
-  useEffect(() => {
-    if (!morphRef.current) return;
-    const words = ['artist', 'engineer', 'explorer', 'builder', 'dreamer', 'creator'];
-    let idx = 0;
-    const morph = () => {
-      const next = words[idx % words.length];
-      gsap.to(morphRef.current, {
-        duration: 0.25, opacity: 0, y: -8, ease: 'power2.in',
-        onComplete: () => {
-          if (!morphRef.current) return;
-          morphRef.current.textContent = next;
-          gsap.fromTo(morphRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' });
-        }
-      });
-      idx++;
+    const update = () => {
+      let current = '';
+      for (const {id} of NAV_ITEMS) if (document.getElementById(id)?.getBoundingClientRect().top <= 180) current = id;
+      setActive(current);
     };
-    const interval = setInterval(morph, 2000);
-    return () => clearInterval(interval);
+    window.addEventListener('scroll', update, {passive:true});
+    update();
+    return () => window.removeEventListener('scroll', update);
   }, []);
-
-  // Parallax
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.to('.hero__overlay', {
-        y: -60, opacity: 0,
-        scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1.2 }
-      });
-    });
-    return () => ctx.revert();
-  }, []);
-
-  // Logo float
-  useEffect(() => {
-    if (!logoRef.current) return;
-    gsap.to(logoRef.current, { y: -8, duration: 3, ease: 'sine.inOut', repeat: -1, yoyo: true });
-  }, []);
-
-  return (
-    <section className={`hero ${loaded ? 'hero--loaded' : ''}`} id="hero">
-      <canvas ref={canvasRef} className="hero__canvas" />
-      <div className="hero__overlay">
-        <img ref={logoRef} src="/logo.png" alt="@notreallyzoh" className="hero__logo hero__reveal" style={{ '--delay': '0s' }} />
-        <p className="hero__hint mono hero__reveal" style={{ '--delay': '0.3s' }}>click · drag · hover</p>
-        <h1 className="hero__heading hero__reveal" style={{ '--delay': '0.5s' }}>
-          <span className="hero__line">{PERSONAL.name}</span>
-        </h1>
-        <p className="hero__tagline mono hero__reveal" style={{ '--delay': '0.8s' }}>{PERSONAL.tagline}</p>
-        <div className="hero__morph-wrap mono hero__reveal" style={{ '--delay': '1s' }}>
-          a digital <span ref={morphRef} className="hero__morph-word">artist</span>
-        </div>
-        <div className="hero__ctas hero__reveal" style={{ '--delay': '1.2s' }}>
-          <a href="#work" className="neo-btn" onClick={e => { e.preventDefault(); document.getElementById('work')?.scrollIntoView({ behavior: 'smooth' }); }}>View Work ↓</a>
-          <a href="/resume.pdf" download className="neo-btn neo-btn--outline">Resume ↓</a>
-        </div>
-      </div>
-      <div className="hero__scroll mono hero__reveal" style={{ '--delay': '1.4s' }}><span>scroll</span><div className="hero__scroll-line" /></div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   ABOUT — horizontal scroll for tech stack
-   ═══════════════════════════════════════════════ */
-function About() {
-  const ref = useRef();
-  const hScrollRef = useRef();
-
-  useEffect(() => {
-    const s = ref.current; if (!s) return;
-    const ctx = gsap.context(() => {
-      // Title & bio animations
-      gsap.from(s.querySelector('.about__title'), { y: 60, opacity: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: s, start: 'top 75%', toggleActions: 'play none none reverse' } });
-      gsap.from(s.querySelectorAll('.about__bio p'), { y: 30, opacity: 0, stagger: 0.1, duration: 0.7, ease: 'power2.out', scrollTrigger: { trigger: s, start: 'top 70%', toggleActions: 'play none none reverse' } });
-
-      // Horizontal scroll for tech stack cards
-      const hScroll = hScrollRef.current;
-      if (hScroll) {
-        const cards = hScroll.querySelectorAll('.stack-card');
-        const totalWidth = Array.from(cards).reduce((sum, c) => sum + c.offsetWidth + 16, 0);
-        gsap.to(hScroll, {
-          x: () => -(totalWidth - window.innerWidth + 200),
-          ease: 'none',
-          scrollTrigger: {
-            trigger: '.hscroll-wrap',
-            start: 'top 20%',
-            end: () => `+=${totalWidth}`,
-            scrub: 1,
-            pin: true,
-          }
-        });
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const media = window.matchMedia('(min-width: 1000px)');
+    const resize = () => { if (media.matches) setOpen(false); };
+    const keydown = e => {
+      if (e.key === 'Escape') { setOpen(false); burgerRef.current?.focus(); }
+      if (e.key === 'Tab') {
+        const items = [burgerRef.current, ...menuRef.current.querySelectorAll('a')];
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
       }
-    }, s);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={ref} className="section" id="about">
-      <div className="container">
-        <div className="section-label">About</div>
-        <h2 className="about__title">Where <em>code</em> meets <em>expression</em></h2>
-        <div className="about__bio">
-          <p className="about__hero-line">{PERSONAL.bio[0]}</p>
-          {PERSONAL.bio.slice(1).map((l, i) => <p key={i}>{l}</p>)}
-          <p className="about__long">{PERSONAL.longBio}</p>
-        </div>
-      </div>
-      <div className="hscroll-wrap">
-        <div className="container">
-          <h3 className="mono stack-title">// TOOLKIT</h3>
-        </div>
-        <div ref={hScrollRef} className="hscroll-track">
-          {TECH_STACK.map(c => (
-            <div key={c.cat} className="stack-card neo-card">
-              <div className="stack-card__inner">
-                <div className="stack-cat"><span className="stack-icon">{c.icon}</span><span className="mono">{c.cat}</span></div>
-                <div className="stack-tools">{c.tools.map(t => <span key={t} className="stack-tool">{t}</span>)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="container">
-        <GitHubViz />
-      </div>
-    </section>
-  );
+    };
+    media.addEventListener('change', resize);
+    window.addEventListener('keydown', keydown);
+    return () => { document.body.style.overflow = previousOverflow; media.removeEventListener('change', resize); window.removeEventListener('keydown', keydown); };
+  }, [open]);
+  return <header className={`nav ${open ? 'nav--open' : ''}`}>
+    <a className="nav__logo" href="#hero" aria-label="Zoh — home" onClick={() => setOpen(false)}>
+      <img src={localUrl("/logo.png")} width="36" height="36" alt="" /><span>notreallyzoh<span className="nav__logo-period">.</span></span>
+    </a>
+    <button ref={burgerRef} className="nav__burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(v => !v)}><span>{open ? 'Close' : 'Menu'}</span><span className="nav__burger-icon" aria-hidden="true">{open ? '−' : '+'}</span></button>
+    <nav ref={menuRef} id="main-navigation" className="nav__links" aria-label="Main navigation">
+      {NAV_ITEMS.map(item => <a key={item.id} className={`nav__link ${active === item.id ? 'active' : ''}`} aria-current={active === item.id ? 'location' : undefined} href={`#${item.id}`} onClick={() => setOpen(false)}>{item.label}</a>)}
+      <a className="nav__resume" href={localUrl("/resume.pdf")} download>Résumé <span aria-hidden="true">↓</span></a>
+    </nav>
+    <button className="nav__theme" onClick={() => setTheme(t => t === 'classy' ? 'bold' : 'classy')} aria-label={theme === 'classy' ? 'Switch to light theme' : 'Switch to dark theme'} title="Change theme"><span aria-hidden="true">{theme === 'classy' ? '◐' : '◑'}</span></button>
+  </header>;
 }
 
-/* ═══════════════════════════════════════════════
-   GITHUB
-   ═══════════════════════════════════════════════ */
-function GitHubViz() {
-  const cvRef = useRef();
-  const [stats, setStats] = useState({ total: 0, streak: 0 });
-  const [weeks, setWeeks] = useState(null);
-
+function Hero() {
+  const [scene, setScene] = useState(0);
+  const heroRef = useRef();
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('https://api.github.com/users/notreallyzoh/events/public?per_page=100');
-        const events = await res.json();
-        if (!Array.isArray(events)) { mock(); return; }
-        const map = {};
-        const now = new Date();
-        for (let i = 0; i < 365; i++) { const d = new Date(now); d.setDate(d.getDate() - i); map[d.toISOString().split('T')[0]] = 0; }
-        events.forEach(ev => { const dt = ev.created_at?.split('T')[0]; if (dt && map[dt] !== undefined) map[dt]++; });
-        const sorted = Object.keys(map).sort();
-        const w = []; let cur = [];
-        sorted.forEach(d => { cur.push(map[d]); if (cur.length === 7) { w.push(cur); cur = []; } });
-        if (cur.length) w.push(cur);
-        let str = 0; for (let i = sorted.length - 1; i >= 0; i--) { if (map[sorted[i]] > 0) str++; else break; }
-        setWeeks(w); setStats({ total: Object.values(map).reduce((a, b) => a + b, 0), streak: str });
-      } catch { mock(); }
-    })();
-    function mock() {
-      const w = Array.from({ length: 52 }, () => Array.from({ length: 7 }, () => Math.random() > 0.4 ? Math.floor(Math.random() * 6) : 0));
-      setWeeks(w); setStats({ total: 183, streak: 3 });
-    }
+    if (reducedMotion()) return;
+    const ctx = gsap.context(() => {
+      gsap.from('.hero__heading > span', {y:36, opacity:0, duration:.9, stagger:.1, ease:'power3.out'});
+      gsap.from('.hero__intro, .hero__actions', {y:18, opacity:0, duration:.7, delay:.3, stagger:.1});
+    }, heroRef);
+    return () => ctx.revert();
   }, []);
-
-  const drawGrid = useCallback(() => {
-    const cv = cvRef.current; if (!cv || !weeks) return;
-    const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height);
-    const cell = 9, gap = 3, style = getComputedStyle(document.documentElement);
-    const accent = style.getPropertyValue('--accent').trim() || '#9b6dff';
-    const bg3 = style.getPropertyValue('--bg-tertiary').trim() || '#16142a';
-    const sx = (cv.width - weeks.length * (cell + gap)) / 2, sy = (cv.height - 7 * (cell + gap)) / 2;
-    weeks.forEach((w, wi) => w.forEach((v, di) => {
-      const x = sx + wi * (cell + gap), y = sy + di * (cell + gap);
-      c.beginPath(); c.roundRect(x, y, cell, cell, 2);
-      if (v === 0) { c.fillStyle = bg3; } else { c.fillStyle = accent; c.globalAlpha = 0.2 + Math.min(v / 5, 1) * 0.8; }
-      c.fill(); c.globalAlpha = 1;
-    }));
-  }, [weeks]);
-
-  useEffect(() => { drawGrid(); }, [drawGrid]);
-  useEffect(() => {
-    const obs = new MutationObserver(drawGrid);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, [drawGrid]);
-
-  if (!weeks) return null;
-  return (
-    <div className="github glass">
-      <div className="github__top">
-        <h3 className="mono github__label">// GITHUB_ACTIVITY</h3>
-        <a href="https://github.com/notreallyzoh" target="_blank" rel="noopener noreferrer" className="mono github__user">@notreallyzoh</a>
-      </div>
-      <canvas ref={cvRef} width={680} height={110} className="github__canvas" />
-      <div className="github__stats">
-        <div><span className="github__num">{stats.total}</span><span className="mono github__lbl">contributions</span></div>
-        <div><span className="github__num">{stats.streak}</span><span className="mono github__lbl">day streak</span></div>
+  return <section className="hero" id="hero" ref={heroRef} data-section="hero">
+    <div className="hero__scenes" aria-hidden="true">
+      {SCENES.map((s,i) => <img key={s.id} className={`hero__scene ${scene === i ? 'is-active' : ''} hero__scene--${s.id}`} src={s.image} alt="" fetchPriority={i === 0 ? 'high' : 'auto'} />)}
+    </div>
+    <div className="hero__shade" />
+    <div className="hero__content">
+      <p className="hero__intro">Zoheb Mamoo <span>/</span> New media artist & creative technologist</p>
+      <h1 className="hero__heading"><span>Art that moves.</span><span>Spaces that</span><span className="hero__serif">respond.</span></h1>
+      <div className="hero__actions"><a href="#work" className="neo-btn">Explore the work <Arrow /></a><a href={localUrl("/resume.pdf")} download className="hero__resume">Download résumé <span aria-hidden="true">↓</span></a></div>
+    </div>
+    <div className="hero__bottom">
+      <p className="hero__location">Based in Bangalore<br/><span>Working across art, code & physical space</span></p>
+      <div className="hero__selector" aria-label="Featured project scenes">
+        <div className="hero__scene-controls">{SCENES.map((s,i) => <button key={s.id} onClick={() => setScene(i)} aria-label={`Show ${s.name}`} aria-pressed={scene === i}><span className="hero__scene-number">0{i+1}</span><span className="hero__scene-rule" /></button>)}</div>
+        <a href={`#project-${SCENES[scene].id}`} onClick={e => { e.preventDefault(); window.dispatchEvent(new CustomEvent('portfolio:select-project', {detail: SCENES[scene].id})); }} className="hero__scene-link"><span>{SCENES[scene].name}<small>{SCENES[scene].role}</small></span><Arrow diagonal /></a>
       </div>
     </div>
-  );
+  </section>;
 }
 
-/* ═══════════════════════════════════════════════
-   WORK — scroll waypoint animated entry
-   ═══════════════════════════════════════════════ */
 function Work() {
-  const [cat, setCat] = useState('installations');
-  const ref = useRef();
+  const [cat, setCat] = useState('all');
+  const [target, setTarget] = useState(null);
   const gridRef = useRef();
-  const filtered = PROJECTS.filter(p => p.category === cat);
-
+  const websites = PROJECTS.filter(p => p.category === 'websites');
+  const filtered = PROJECTS.filter(p => cat === 'all' ? p.category !== 'websites' : (p.categories || [p.category]).includes(cat));
+  const displayed = cat === 'all' ? filtered.flatMap(p => p.id === '1by0' ? [p, {id: 'website-collection'}] : [p]) : filtered;
+  const openWebsites = () => {
+    setCat('websites');
+    document.getElementById('work')?.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth', block: 'start' });
+    document.getElementById('filter-websites')?.focus({ preventScroll: true });
+  };
   useEffect(() => {
-    const s = ref.current; if (!s) return;
-    const ctx = gsap.context(() => {
-      // Animate title with scroll waypoint
-      const title = s.querySelector('.work__title');
-      gsap.from(title, {
-        y: 80, opacity: 0, duration: 1.2, ease: 'power3.out',
-        scrollTrigger: { trigger: s, start: 'top 75%', toggleActions: 'play none none reverse' }
-      });
-
-      // Animate tabs
-      gsap.from(s.querySelectorAll('.work__tab'), {
-        x: -20, opacity: 0, stagger: 0.05, duration: 0.4, ease: 'power2.out',
-        scrollTrigger: { trigger: s, start: 'top 70%', toggleActions: 'play none none reverse' }
-      });
-    }, s);
-    return () => ctx.revert();
+    const select = e => { setCat(PROJECTS.find(p => p.id === e.detail)?.category === 'websites' ? 'websites' : 'all'); setTarget(e.detail); };
+    window.addEventListener('portfolio:select-project', select);
+    return () => window.removeEventListener('portfolio:select-project', select);
   }, []);
-
   useEffect(() => {
-    if (!gridRef.current) return;
-    gsap.fromTo(gridRef.current.querySelectorAll('.work__card'),
-      { y: 50, opacity: 0, scale: 0.96 },
-      { y: 0, opacity: 1, scale: 1, stagger: 0.1, duration: 0.6, ease: 'power2.out' }
-    );
+    if (!target) return;
+    const card = document.getElementById(`project-${target}`);
+    card?.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth', block:'start' });
+    card?.querySelector('.work__read')?.focus({preventScroll:true});
+    history.replaceState(null, '', `#project-${target}`);
+    setTarget(null);
+  }, [target]);
+  useEffect(() => {
+    if (reducedMotion()) return;
+    const ctx = gsap.context(() => gsap.from('.work__card', {y:20, opacity:0, duration:.45, stagger:.035, clearProps:'all', ease:'power2.out'}), gridRef);
+    return () => ctx.revert();
   }, [cat]);
-
-  return (
-    <section ref={ref} className="section" id="work">
-      <div className="container">
-        <div className="section-label">Work & Projects</div>
-        <h2 className="work__title">Creative <em>Showcase</em></h2>
-        <div className="work__tabs">
-          {CATEGORIES.map(c => (
-            <button key={c.id} className={`work__tab mono ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
-              <span>{c.icon}</span> {c.label}
-            </button>
-          ))}
-        </div>
-        <div ref={gridRef} className="work__grid">
-          {filtered.map(p => <ProjectCard key={p.id} p={p} />)}
-        </div>
+  return <section className="section work" id="work" data-section="work">
+    <div className="container">
+      <div className="section-heading"><div><p className="section-label">A selection of things I've made & been part of</p><h2 className="work__title">Selected <em>work.</em></h2></div><p className="section-note">From a screen to a space.<br/>Ideas made tangible, together.</p></div>
+      <div className="work__toolbar"><div className="work__tabs" aria-label="Filter projects">
+        <button className={`work__tab ${cat === 'all' ? 'active' : ''}`} aria-pressed={cat === 'all'} onClick={() => setCat('all')}>All work <sup>{PROJECTS.length - websites.length + 1}</sup></button>
+        {CATEGORIES.map(c => <button id={`filter-${c.id}`} key={c.id} className={`work__tab ${cat === c.id ? 'active' : ''}`} aria-pressed={cat === c.id} onClick={() => setCat(c.id)}>{c.label} <sup>{PROJECTS.filter(p => (p.categories || [p.category]).includes(c.id)).length}</sup></button>)}
+      </div><span className="work__count" aria-live="polite">{cat === 'all' ? `${filtered.length} projects + 1 collection` : `${filtered.length} projects`}</span></div>
+      {cat === 'websites' && <p className="work__web-intro">Freelance design & full-stack development, from first concept to launch. Five live projects, subsequently handed over to the agency.</p>}
+      <div ref={gridRef} className="work__grid">
+        {displayed.map(p => p.id === 'website-collection' ? <article key={p.id} className="work__card work__collection">
+          <button className="work__collection-preview" onClick={openWebsites} aria-label="Explore all five websites and commerce projects">
+            {websites.map(p => <img key={p.id} src={p.media[0].src} alt="" loading="lazy" />)}
+            <span className="work__open" aria-hidden="true"><Arrow diagonal /></span>
+          </button>
+          <div className="work__info">
+            <div className="work__meta"><span>Freelance design & development</span><span>{websites.length} websites</span></div>
+            <h3>Websites & Commerce</h3>
+            <p className="work__description">ALIFA, BZ Fitness, NEXSTEG, Roca Fuels & Adaline. From editorial storefronts to catalogues and brand websites.</p>
+            <button className="work__read" onClick={openWebsites}>Explore the collection <Arrow /></button>
+          </div>
+        </article> : <ProjectCard key={p.id} p={p} />)}
       </div>
-    </section>
-  );
+    </div>
+  </section>;
 }
 
 function ProjectCard({ p }) {
   const [mi, setMi] = useState(0);
   const [open, setOpen] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const closeRef = useRef();
+  const openerRef = useRef();
+  const close = () => { setOpen(false); setPlaying(false); };
   const m = p.media[mi];
 
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.getElementById('root').inert = true;
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.getElementById('root').inert = false;
+      openerRef.current?.focus({ preventScroll: true });
+    };
   }, [open]);
 
   // ESC to close
   useEffect(() => {
     if (!open) return;
-    const onKey = e => { if (e.key === 'Escape') setOpen(false); };
+    closeRef.current?.focus();
+    const onKey = e => {
+      if (e.key === 'Escape') close();
+      if (e.key === 'Tab') {
+        const items = [...closeRef.current.closest('.detail').querySelectorAll('button, a[href], iframe, video[controls]')];
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
   return (
     <>
-      <div className="work__card neo-card" onClick={() => setOpen(true)}>
-        <div className="work__media">
+      <article className={`work__card neo-card ${p.showcase ? 'work__card--showcase' : ''} ${p.presentation === 'portrait' ? 'work__card--portrait' : ''} ${p.presentation === 'website' ? 'work__card--website' : ''}`} id={`project-${p.id}`} onClick={() => setOpen(true)}>
+        {p.domain && <div className="work__browser"><span aria-hidden="true">● ● ●</span><span>{p.domain}</span><span>↗</span></div>}
+        <div className="work__media" onPointerEnter={e => { if (e.pointerType === 'mouse' && !reducedMotion()) e.currentTarget.querySelector('video')?.play().catch(() => {}); }} onPointerLeave={e => e.currentTarget.querySelector('video')?.pause()}>
           {m?.type === 'video'
-            ? <video src={m.src} muted loop playsInline autoPlay />
-            : <img src={m?.src} alt={p.title} loading="lazy" />}
-          {p.media.length > 1 && (
-            <div className="work__dots">
-              {p.media.map((_, i) => <button key={i} className={`work__dot ${i === mi ? 'active' : ''}`} onClick={e => { e.stopPropagation(); setMi(i); }} />)}
-            </div>
-          )}
-          <span className="work__year mono">{p.year}</span>
-          {p.longDesc && <span className="work__badge mono">CASE STUDY</span>}
+            ? <video src={m.src} poster={m.poster} muted loop playsInline preload="metadata" aria-label={p.title} />
+            : <img src={m?.src} alt={m?.caption || p.title} loading="lazy" />}
+          <span className="work__media-count">{p.media.length} {p.media.length === 1 ? 'frame' : 'frames'} {p.media.some(m => m.type === 'video') ? ' / film' : ''}</span>
+          <span className="work__open" aria-hidden="true"><Arrow diagonal /></span>
         </div>
         <div className="work__info">
-          <h3>{p.title}</h3>
-          <p>{p.desc}</p>
-          <div className="work__tech">{p.tech.map(t => <span key={t} className="mono">{t}</span>)}</div>
-          {p.links?.live && <a href={p.links.live} target="_blank" rel="noopener noreferrer" className="mono work__link" onClick={e => e.stopPropagation()}>→ Live Demo</a>}
+          <div className="work__meta"><span>{p.showcaseLabel || CATEGORIES.find(c => c.id === p.category)?.label}</span><span>{p.year}</span></div>
+          <h3>{p.title.split(' — ')[0]}</h3>
+          <p className="work__description">{p.desc}</p>
+          <button ref={openerRef} className="work__read" onClick={() => setOpen(true)}>Explore project <Arrow /></button>
+          {p.links?.preview && <a href={p.links.preview} target="_blank" rel="noopener noreferrer" className="work__preview-link mono" onClick={e => e.stopPropagation()}>Try the map ↗</a>}
+          {p.links?.gallery && <a href={p.links.gallery} target="_blank" rel="noopener noreferrer" className="work__preview-link mono" onClick={e => e.stopPropagation()}>Identity & motion gallery ↗</a>}
+          {p.links?.live && <a href={p.links.live} target="_blank" rel="noopener noreferrer" className="mono work__link" onClick={e => e.stopPropagation()}>{p.domain ? 'Visit website ↗' : '→ Live Demo'}</a>}
         </div>
-      </div>
+      </article>
 
       {/* Full-screen detail modal */}
-      {open && (
-        <div className="detail-overlay" onClick={() => setOpen(false)}>
-          <div className="detail" onClick={e => e.stopPropagation()}>
-            <button className="detail__close" onClick={() => setOpen(false)}>✕</button>
+      {open && createPortal((
+        <div className="detail-overlay" onClick={close}>
+          <div className={`detail ${p.showcase ? 'detail--showcase' : ''} ${p.presentation === 'portrait' ? 'detail--portrait' : ''}`} role="dialog" aria-modal="true" aria-labelledby={`title-${p.id}`} onClick={e => e.stopPropagation()}>
+            <button ref={closeRef} className="detail__close" aria-label="Close project" onClick={close}>✕</button>
 
             {/* Media carousel */}
             <div className="detail__media">
               {p.media[mi]?.type === 'video'
-                ? <video src={p.media[mi].src} controls autoPlay muted loop playsInline />
-                : <img src={p.media[mi]?.src} alt={p.title} />}
+                ? <video key={p.media[mi].src} src={p.media[mi].src} poster={p.media[mi].poster} controls autoPlay={!reducedMotion()} muted loop playsInline preload="metadata" />
+                : <img src={p.media[mi]?.src} alt={p.media[mi]?.caption || p.title} />}
               {p.media.length > 1 && (
                 <div className="detail__thumbs">
                   {p.media.map((med, i) => (
-                    <button key={i} className={`detail__thumb ${i === mi ? 'active' : ''}`} onClick={() => setMi(i)}>
+                    <button key={i} aria-pressed={i === mi} className={`detail__thumb ${i === mi ? 'active' : ''}`} onClick={() => setMi(i)}>
                       {med.type === 'video' ? '▶' : '◻'}
-                      {med.caption && <span className="detail__thumb-label mono">{med.caption}</span>}
+                      {med.caption && <span className="detail__thumb-label mono">{med.label || med.caption}</span>}
                     </button>
                   ))}
                 </div>
@@ -836,8 +243,19 @@ function ProjectCard({ p }) {
 
             {/* Content */}
             <div className="detail__content">
-              <h2>{p.title}</h2>
+              <h2 id={`title-${p.id}`}>{p.title}</h2>
               <p className="detail__desc">{p.desc}</p>
+              {p.role && <div className="detail__meta"><span className="mono">MY ROLE</span><span>{p.role}</span></div>}
+              {p.links?.preview && (
+                <section className="detail__preview" aria-label="Interactive project preview">
+                  <div className="detail__preview-actions">
+                    <button className="neo-btn" onClick={() => setPlaying(v => !v)}>{playing ? 'Close interactive preview' : 'Explore the interactive map'}</button>
+                    <a href={p.links.preview} target="_blank" rel="noopener noreferrer">Open full screen ↗</a>
+                  </div>
+                  <p>Try Places → choose a venue → “I’m here”, then open My Sabha to see your network grow. Demo stamps stay in this browser.</p>
+                  {playing && <iframe src={p.links.preview} title="Shroom Sabha interactive festival guide demo" sandbox="allow-scripts allow-same-origin allow-popups allow-downloads" />}
+                </section>
+              )}
 
               {p.event && (
                 <div className="detail__meta">
@@ -870,10 +288,15 @@ function ProjectCard({ p }) {
                 </div>
               )}
 
+              {p.credits && <section className="detail__credits"><h3 className="mono">{p.creditsLabel || 'Built with'}</h3><dl>{p.credits.map(c => <div key={c.role}><dt>{c.role}</dt><dd>{c.names}</dd></div>)}</dl></section>}
+
               <div className="detail__tech">
-                <span className="mono detail__tech-label">TECH STACK</span>
+                <span className="mono detail__tech-label">{p.techLabel || 'TECH STACK'}</span>
                 <div className="detail__tags">{p.tech.map(t => <span key={t} className="stack-tool">{t}</span>)}</div>
               </div>
+
+              {p.links?.gallery && <div className="detail__links"><a className="neo-btn detail__cta" href={p.links.gallery} target="_blank" rel="noopener noreferrer">Explore identity & motion ↗</a></div>}
+              {p.references && <div className="detail__references">{p.references.map(link => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</div>}
 
               {(p.links?.live || p.links?.github) && (
                 <div className="detail__links">
@@ -892,7 +315,7 @@ function ProjectCard({ p }) {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   );
 }
@@ -900,176 +323,38 @@ function ProjectCard({ p }) {
 /* ═══════════════════════════════════════════════
    EXPERIENCE — scroll-triggered timeline
    ═══════════════════════════════════════════════ */
+
+function About() {
+  return <section className="section about" id="about" data-section="about"><div className="container">
+    <div className="about__intro"><p className="section-label">The person behind the pixels</p><h2>I think in code.<br/>I make in <em>many mediums.</em></h2></div>
+    <div className="about__body"><div className="about__identity"><img src={localUrl("/logo.png")} alt="Zoh's artist mark" width="112" height="112"/><p>Zoheb Mamoo<span>Artist. Engineer. Collaborator.</span></p></div><div className="about__bio"><p>{PERSONAL.bio[1]}</p><p>{PERSONAL.bio[2]}</p><p>{PERSONAL.longBio}</p><a className="text-link" href={`https://github.com/${PERSONAL.github}`} target="_blank" rel="noopener noreferrer">Explore my code <Arrow diagonal /></a></div></div>
+    <div className="toolkit"><h3>Across my practice</h3><div className="toolkit__list">{TECH_STACK.map(c => <details key={c.cat} className="toolkit__row"><summary>{c.cat}<span aria-hidden="true">+</span></summary><p>{c.tools.join(' · ')}</p></details>)}</div></div>
+  </div></section>;
+}
+
 function Experience() {
-  const ref = useRef();
-  useEffect(() => {
-    const s = ref.current; if (!s) return;
-    const ctx = gsap.context(() => {
-      gsap.from(s.querySelector('.exp__title'), { y: 60, opacity: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: s, start: 'top 75%', toggleActions: 'play none none reverse' } });
-      gsap.from(s.querySelector('.exp__line'), { scaleY: 0, transformOrigin: 'top center', duration: 1.5, ease: 'power3.inOut', scrollTrigger: { trigger: s, start: 'top 70%', toggleActions: 'play none none reverse' } });
-      gsap.from(s.querySelectorAll('.exp__card'), { x: -60, opacity: 0, stagger: 0.2, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: s, start: 'top 65%', toggleActions: 'play none none reverse' } });
-    }, s);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={ref} className="section" id="experience">
-      <div className="container">
-        <div className="section-label">Experience</div>
-        <h2 className="exp__title">The <em>journey</em> so far</h2>
-        <div className="exp__timeline">
-          <div className="exp__line" />
-          {EXPERIENCES.map(ex => (
-            <div key={ex.id} className="exp__card neo-card">
-              <div className="exp__card-inner">
-                <div className="exp__dot" />
-                <div className="exp__header">
-                  <div>
-                    <h3>{ex.role}</h3>
-                    <p className="exp__co">{ex.company} <span className="mono">· {ex.type}</span></p>
-                  </div>
-                  <span className="mono exp__period">{ex.period}</span>
-                </div>
-                <p className="exp__desc">{ex.desc}</p>
-                <ul className="exp__hl">{ex.highlights.map((h, i) => <li key={i}>{h}</li>)}</ul>
-                <div className="exp__skills">{ex.skills.map(s => <span key={s} className="mono">{s}</span>)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return <section className="section experience" id="experience" data-section="experience"><div className="container">
+    <div className="section-heading"><h2>Creative practice.<br/><em>Engineering roots.</em></h2><a href={localUrl("/resume.pdf")} download className="text-link">Download résumé <span aria-hidden="true">↓</span></a></div>
+    <div className="exp__list">{EXPERIENCES.map(ex => <article key={ex.id} className="exp__row"><div className="exp__period">{ex.period}</div><div className="exp__body"><h3>{ex.role}</h3><p className="exp__co">{ex.company} <span>· {ex.type}</span></p><p className="exp__desc">{ex.desc}</p><ul>{ex.highlights.map(h => <li key={h}>{h}</li>)}</ul><p className="exp__skills">{ex.skills.join(' / ')}</p></div></article>)}</div>
+  </div></section>;
 }
 
-/* ═══════════════════════════════════════════════
-   SPOTIFY — live API with fallback
-   Setup: Create /api/spotify endpoint or use env vars
-   Needs SPOTIFY_REFRESH_TOKEN, SPOTIFY_CLIENT_ID,
-   SPOTIFY_CLIENT_SECRET as server-side secrets
-   ═══════════════════════════════════════════════ */
-const SPOTIFY_ENDPOINT = '/api/spotify'; // server endpoint for now-playing
-
-function SpotifyWidget() {
-  const [track, setTrack] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchNowPlaying = async () => {
-      try {
-        const res = await fetch(SPOTIFY_ENDPOINT);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.is_playing && mounted) {
-            setTrack({
-              name: data.item?.name || 'Unknown',
-              artist: data.item?.artists?.map(a => a.name).join(', ') || 'Unknown',
-              album_art: data.item?.album?.images?.[2]?.url || null,
-              url: data.item?.external_urls?.spotify,
-            });
-            setIsPlaying(true);
-          } else if (mounted) {
-            setIsPlaying(false);
-          }
-        } else {
-          // Fallback to mock
-          if (mounted) {
-            setTrack({ name: 'Midnight City', artist: 'M83', album_art: null, url: '#' });
-            setIsPlaying(true);
-          }
-        }
-      } catch {
-        if (mounted) {
-          setTrack({ name: 'Midnight City', artist: 'M83', album_art: null, url: '#' });
-          setIsPlaying(true);
-        }
-      }
-    };
-    fetchNowPlaying();
-    const interval = setInterval(fetchNowPlaying, 30000); // poll every 30s
-    return () => { mounted = false; clearInterval(interval); };
-  }, []);
-
-  if (!track) return null;
-
-  return (
-    <a href={track.url || '#'} target="_blank" rel="noopener noreferrer" className="spotify glass" style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div className="spotify__top">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="#1db954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-        <span className="mono spotify__lbl">{isPlaying ? 'NOW PLAYING' : 'LAST PLAYED'}</span>
-      </div>
-      <div className="spotify__track">
-        {track.album_art
-          ? <img src={track.album_art} alt="" className="spotify__art-img" />
-          : <div className="spotify__art">♪</div>}
-        <div className="spotify__info">
-          <p className="spotify__name">{track.name}</p>
-          <p className="spotify__artist">{track.artist}</p>
-        </div>
-        {isPlaying && <div className="spotify__bars"><span/><span/><span/><span/></div>}
-      </div>
-    </a>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   CONTACT
-   ═══════════════════════════════════════════════ */
 function Contact() {
-  const ref = useRef();
-  useEffect(() => {
-    const s = ref.current; if (!s) return;
-    const ctx = gsap.context(() => {
-      gsap.from(s.querySelector('.contact__title'), { y: 80, opacity: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: s, start: 'top 70%', toggleActions: 'play none none reverse' } });
-      gsap.from(s.querySelectorAll('.contact__soclink'), { y: 20, opacity: 0, stagger: 0.06, duration: 0.4, ease: 'power2.out', scrollTrigger: { trigger: s, start: 'top 60%', toggleActions: 'play none none reverse' } });
-    }, s);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={ref} className="section contact" id="contact">
-      <div className="container contact__inner">
-        <div className="section-label">Contact</div>
-        <h2 className="contact__title">Let's build something<br /><em>wild & meaningful</em></h2>
-        <p className="contact__sub">Always open to collaborations, commissions, and creative tech projects.</p>
-        <a href={`mailto:${PERSONAL.email}`} className="neo-btn contact__email">
-          {PERSONAL.email} <span>→</span>
-        </a>
-        <div className="contact__links">
-          {SOCIALS.map(s => (
-            <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" className="contact__soclink glass">
-              <span>{s.icon}</span><span className="mono">{s.label}</span>
-            </a>
-          ))}
-        </div>
-        <SpotifyWidget />
-        <footer className="contact__footer">
-          <p className="mono">© {new Date().getFullYear()} {PERSONAL.name} — Crafted with code & curiosity</p>
-          <p className="mono contact__stack">React · GSAP · Canvas · NeoPOP-inspired CSS</p>
-        </footer>
-      </div>
-    </section>
-  );
+  const [copied, setCopied] = useState(false);
+  const timer = useRef();
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copyEmail = async () => {
+    try { await navigator.clipboard.writeText(PERSONAL.email); setCopied(true); clearTimeout(timer.current); timer.current = setTimeout(() => setCopied(false), 2500); }
+    catch { window.location.href = `mailto:${PERSONAL.email}`; }
+  };
+  return <footer className="section contact" id="contact" data-section="contact"><div className="container">
+    <p className="section-label">A role, a collaboration, an unexpected idea</p>
+    <a className="contact__headline" href={`mailto:${PERSONAL.email}`}><h2>Let's make<br/><em>something move.</em></h2><Arrow diagonal /></a>
+    <div className="contact__actions"><a href={`mailto:${PERSONAL.email}`}>{PERSONAL.email}</a><button onClick={copyEmail} aria-label="Copy email address"><span aria-live="polite">{copied ? 'Copied ✓' : 'Copy email'}</span></button></div>
+    <div className="contact__footer"><a href="#hero" className="contact__wordmark">notreallyzoh.</a><div className="contact__links">{SOCIALS.filter(s => s.label !== 'Email').map(s => <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer">{s.label} <Arrow diagonal /></a>)}<a href="https://www.instagram.com/notreallyzoh/" target="_blank" rel="noopener noreferrer">Instagram <Arrow diagonal /></a></div><span>© {new Date().getFullYear()} Zoheb Mamoo</span><a href="#hero" className="back-top">Back to top ↑</a></div>
+  </div></footer>;
 }
 
-/* ═══════════════════════════════════════════════
-   APP
-   ═══════════════════════════════════════════════ */
 export default function App() {
-  return (
-    <ThemeProvider>
-      <AudioProvider>
-        <CursorTrail />
-        <Nav />
-        <main>
-          <Hero />
-          <About />
-          <Work />
-          <Experience />
-          <Contact />
-        </main>
-      </AudioProvider>
-    </ThemeProvider>
-  );
+  return <><a className="skip-link" href="#work">Skip to work</a><Nav /><main><Hero /><Work /><About /><Experience /></main><Contact /></>;
 }

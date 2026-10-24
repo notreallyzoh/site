@@ -3,5 +3,6 @@ import react from '@vitejs/plugin-react'
 import { spotifyPlugin } from './server/spotify.js'
 
 export default defineConfig({
+  base: process.env.PAGES_BASE || '/',
   plugins: [react(), spotifyPlugin()],
 })

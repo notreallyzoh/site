@@ -1,0 +1,10 @@
+
+.preview-notice { position:fixed; inset:0 0 auto; z-index:9999; min-height:32px; padding:7px 12px; background:#f5e7b9; color:#2a1440; font:12px/1.4 sans-serif; text-align:center; }
+.preview-notice a { color:inherit; margin-left:12px; text-decoration:underline; }
+.hud { top:calc(env(safe-area-inset-top, 0px) + 64px) !important; }
+@media(min-width:700px) { .hud { top:calc(env(safe-area-inset-top, 0px) + 44px) !important; } }
+.slot.is-past { opacity: 1 !important; }
+@media (min-width:820px), (min-width:560px) and (max-height:540px) {
+  .hud { right:min(430px,40vw) !important; }
+  .sheet { top:32px !important; height:calc(100dvh - 32px) !important; }
+}
