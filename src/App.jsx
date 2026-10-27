@@ -222,6 +222,7 @@ function ProjectCard({ p }) {
         <div className="detail-overlay" onClick={close}>
           <div className={`detail ${p.showcase ? 'detail--showcase' : ''} ${p.presentation === 'portrait' ? 'detail--portrait' : ''}`} role="dialog" aria-modal="true" aria-labelledby={`title-${p.id}`} onClick={e => e.stopPropagation()}>
             <button ref={closeRef} className="detail__close" aria-label="Close project" onClick={close}>✕</button>
+            {p.highlightRole && <section className="detail__role-lead" aria-label="My contribution"><p className="section-label">MY ROLE · ZOHEB MAMOO</p><h2>{p.title}</h2><p>{p.role}</p></section>}
 
             {/* Media carousel */}
             <div className="detail__media">

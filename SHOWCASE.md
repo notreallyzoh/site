@@ -106,3 +106,8 @@ User confirmed end-to-end freelance full-stack design/development, setup and mai
 Merged the vj-live and new-media entries, preserving all six original media. Added the first exposed carousel video and cover from DBUUIJATFKB, plus covers for DGJjy24Te-I and DB4Yb4HukZI; those reel embeds expose external watch links rather than video. All three original links remain in the gallery. Captions verified via public Instagram captioned embeds: paper sculpture/projection (Blender, MadMapper, TouchDesigner); House Jam EP01 with jishnuhasanartpage and khanakhakejanaa; audience UV painting/projection at Shroom Sabha.
 Interlace's portfolio credit block and reference links were removed at user request; original attribution and MIT licence remain in the distributed app and documentation. Browser QA passed for /site/ assets, gallery, order, mobile layout and Interlace geometry/preset/capture. GitHub Pages workflow and DEPLOYMENT.md added; no remote publication performed.
 
+
+## Techground expansion — 27 October 2026
+Added five supplied reference images from D:/Course of the Universe/References, labelled as concepts/mockups or identity application boards rather than documentary photographs. Downloaded five design boards from hirist-techground-motion.pages.dev/gallery/: boards/13-thg-monogram.png, boards/14-thg-directions.png, boards/16-access-bands.png, tabletop-r1/review/20-tabletop-signs.png, led-r1/review/23-led-portrait-system.png. Original gallery link retained for interactive motion and editable files. User role is highlighted above media; existing collaborator credits retained.
+Added D:/Stills/MRN01192.JPG as Live Visuals & New Media cover, resized to 2200px JPEG at quality 88 with auto-orientation. No inferred event or photographer credit.
+
