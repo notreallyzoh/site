@@ -18,7 +18,7 @@ export const PERSONAL = {
 export const TECH_STACK = [
   { cat: 'Development', icon: '💻', tools: ['React','C++','Python','GSAP','Node.js','Figma','UI/UX'] },
   { cat: 'Visual & Immersive', icon: '🎛', tools: ['TouchDesigner','MadMapper','Resolume','GLSL','WebGL'] },
-  { cat: '3D & Fabrication', icon: '🎨', tools: ['Blender','Tinkercad','Bambu Studio','Adobe Suite','Pen Plotting','3D Printing'] },
+  { cat: 'Fabrication & Print', icon: '🎨', tools: ['Adobe Suite','Pen Plotting','3D Printing'] },
   { cat: 'Audio & Generative', icon: '🎧', tools: ['Sonic Pi','VCV Rack','MIDI Systems'] },
   { cat: 'Hardware & Sensing', icon: '📡', tools: ['Arduino','Raspberry Pi','Azure Kinect','OSC'] },
 ];
@@ -293,10 +293,10 @@ export const PROJECTS = [
   {
     id: 'vj-live', title: 'Live Visuals & New Media', category: 'vj', categories: ['vj', 'explorations'], year: 'Ongoing',
     desc: 'Live performance and studio experiments in one evolving collection: generative visuals, audio-reactive systems, projection mapping and creative coding.',
-    tech: ['Resolume','TouchDesigner','MadMapper','Blender','MIDI','Audio-Reactive','GLSL','Arduino','Generative Art'],
+    tech: ['Resolume','TouchDesigner','MadMapper','MIDI','Audio-Reactive','GLSL','Arduino','Generative Art'],
     longDesc: [
       { heading: 'From the studio to the stage', text: 'A collection of live visual performances, projection studies and creative coding experiments. The gallery brings performance documentation and new media explorations together.' },
-      { heading: 'Paper, light and form', text: 'Dazed and Confused explores projection on a paper sculpture, modelled in Blender and mapped with MadMapper and TouchDesigner.' },
+      { heading: 'Paper, light and form', text: 'Dazed and Confused explores projection on a paper sculpture, with visuals mapped using MadMapper and TouchDesigner.' },
       { heading: 'Practice as collaboration', text: 'New Media House Jam EP01 documents a visual practice session with @jishnuhasanartpage and @khanakhakejanaa. The Shroom Sabha art-jam experiment combines audience-created UV painting with projection mapping.' },
     ],
     references: [
