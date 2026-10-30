@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Interlace · Loop studio</title><link rel="stylesheet" href="loops.css"><link rel="icon" href="data:,"></head>
+<body>
+<header><a href="../../#project-interlace">← Portfolio</a><strong>INTERLACE <span>/ LOOP STUDIO</span></strong><a href="index.html">Torus mode ↗</a></header>
+<main><section class="stage" aria-label="Pattern preview"><div class="stage-heading"><span id="presetName">Signal garden</span><span id="duration"></span></div><div class="canvas-wrap"><canvas id="art" aria-label="Animated geometric pattern composition"></canvas></div><div class="transport"><button id="play">Pause</button><button id="reset">Restart</button><label class="scrub">Phase <input id="phase" type="range" min="0" max="1" step=".001" value="0"></label><button id="fullscreen">Full screen</button></div><p class="hint">One clock. A shared palette. Layered motifs that resolve together.</p><p id="status" role="status" aria-live="polite">Ready. Change a control or load a composition.</p></section>
+<aside aria-label="Loop controls">
+<h1>Build a visual language.</h1><p class="intro">Geometric glyphs, flowing petals and orbital traces. Every layer follows the same loop.</p>
+<label>Composition<select id="preset"><option value="garden">Signal garden</option><option value="circuit">Crystal circuit</option><option value="bloom">Fluid bloom</option><option value="pulse">Orbital pulse</option></select></label>
+<fieldset><legend>Structure</legend>
+<label>Layout<select id="layout"><option value="diamond">Diamond field</option><option value="grid">Ordered grid</option><option value="bands">Vertical bands</option></select></label>
+<label>Symmetry<select id="symmetry"><option value="mirror">Mirrored pairs</option><option value="radial">Radial alternation</option><option value="none">Independent tiles</option></select></label>
+<label>Columns <output for="columns"></output><input id="columns" type="range" min="2" max="12" step="1"></label>
+<label>Rows <output for="rows"></output><input id="rows" type="range" min="1" max="6" step="1"></label>
+<label>Motif size <output for="scale"></output><input id="scale" type="range" min=".3" max="1.2" step=".01"></label>
+<label>Detail <output for="detail"></output><input id="detail" type="range" min="3" max="12" step="1"></label>
+<div class="pair"><label>Seed<input id="seed" type="number" min="1" max="99999" step="1"></label><button id="variation">New variation</button></div>
+</fieldset>
+<fieldset><legend>Motif layers</legend><p class="note">Set a layer to zero to remove it. All layers share the grid and colour system.</p>
+<label>Crystal glyphs <output for="glyph"></output><input id="glyph" type="range" min="0" max="1" step=".05"></label>
+<label>Petal fans <output for="petal"></output><input id="petal" type="range" min="0" max="1" step=".05"></label>
+<label>Orbit rings <output for="orbit"></output><input id="orbit" type="range" min="0" max="1" step=".05"></label>
+<label>Flowing ribbons <output for="ribbon"></output><input id="ribbon" type="range" min="0" max="1" step=".05"></label>
+<label>Architectural lines <output for="lattice"></output><input id="lattice" type="range" min="0" max="1" step=".05"></label>
+</fieldset>
+<fieldset><legend>Colour & light</legend>
+<label>Palette<select id="palette"><option value="electric">Electric spectrum</option><option value="acid">Acid / ultraviolet</option><option value="ember">Ember / ice</option><option value="mono">Chalk</option><option value="custom">Custom triad</option></select></label>
+<div class="colours"><label>Primary<input id="color1" type="color"></label><label>Secondary<input id="color2" type="color"></label><label>Accent<input id="color3" type="color"></label><label>Ground<input id="background" type="color"></label></div>
+<label>Hue offset <output for="hue"></output><input id="hue" type="range" min="0" max="360" step="1"></label>
+<label>Glow <output for="glow"></output><input id="glow" type="range" min="0" max="20" step="1"></label>
+<label>Line weight <output for="line"></output><input id="line" type="range" min=".5" max="3" step=".1"></label>
+</fieldset>
+<fieldset><legend>Shared rhythm</legend>
+<div class="pair"><label>BPM<input id="bpm" type="number" min="40" max="200" step="1"></label><label>Bars (4/4)<select id="bars"><option>1</option><option>2</option><option>4</option><option>8</option></select></label></div>
+<label>Cycles per loop<select id="cycles"><option>1</option><option>2</option><option>4</option><option>8</option></select></label>
+<label>Movement <output for="motion"></output><input id="motion" type="range" min="0" max="1" step=".05"></label>
+<label>Phase spread <output for="spread"></output><input id="spread" type="range" min="0" max="1" step=".05"></label>
+<p class="note">Zero spread moves everything in unison. Raise it for a wave across the composition. Integer cycles keep the loop seamless.</p>
+</fieldset>
+<fieldset><legend>Output</legend><label>Canvas<select id="size"><option value="1600x400">1600 × 400 · panoramic</option><option value="1920x1080">1920 × 1080 · landscape</option><option value="1080x1080">1080 × 1080 · square</option><option value="1080x1920">1080 × 1920 · portrait</option></select></label>
+<div class="pair"><button id="png">Save PNG</button><button id="record">Record one loop</button></div><p class="note">WebM video at 30 fps, recorded in real time. Keep this tab visible. No audio; this is a BPM clock, not audio analysis.</p>
+<div class="pair"><button id="save">Save settings</button><button id="load">Load settings</button></div><input id="file" type="file" accept="application/json,.json" hidden>
+</fieldset><footer>Original loop-studio implementation for Zoheb Mamoo’s evolving Interlace project. Reference-inspired motifs; no reference image is embedded in the artwork.</footer>
+</aside></main><script src="loops.js"></script></body></html>

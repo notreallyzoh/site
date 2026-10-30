@@ -240,18 +240,21 @@ export const PROJECTS = [
     featured: true,
   },
   {
-    id: 'interlace', title: 'Interlace — A toroidal playground', category: 'explorations', year: 'In progress',
-    showcase: true, showcaseLabel: 'Open-source exploration',
-    desc: 'An evolving playground for recursive tori, woven geometry and sculptural forms. Shape, orbit and capture the structure in a live browser experiment.',
-    role: 'Portfolio adaptation & ongoing exploration',
-    tech: ['Three.js', 'WebGL', 'Procedural Geometry', 'JavaScript'],
-    media: [{ type: 'image', src: '/media/interlace/preview.jpg', caption: 'Interlace — the live portfolio edition, adapted from Tortoise by nurecas' }],
-    longDesc: [
-      { heading: 'Geometry as a starting point', text: 'Counter-rotating fibre families form a recursive toroidal structure. Explore nesting, chirality, colour and lighting, or switch to the inherited Phenomenology modes to see the geometry interpreted as sculptural bodies.' },
-      { heading: 'An evolving edition', text: 'Interlace is my portfolio edition of the MIT-licensed Tortoise Generator by nurecas. This first iteration introduces a new identity, documentation, portfolio integration and mobile panel adjustments. The underlying mathematical construction, renderer and generation system come from the original project.' },
-      { heading: 'Try the playground', text: 'Open the live experiment to orbit and change the structure, export presets or save a reference image. Geometry and captures need no account. Optional Stability AI generation requires your own API key and credits. Desktop and a WebGL2-capable browser are recommended.' },
+    id: 'interlace', title: 'Interlace — Loops & woven geometry', category: 'explorations', year: 'In progress',
+    showcase: true, showcaseLabel: 'Generative visual instrument',
+    desc: 'A browser studio for coordinated geometric loops: crystal glyphs, petal fans, orbital rings and flowing ribbons, with shared colour and rhythm controls.',
+    role: 'Creative direction, loop-studio development & portfolio adaptation',
+    tech: ['Canvas 2D', 'JavaScript', 'Three.js', 'WebGL', 'Procedural Geometry'],
+    media: [
+      { type: 'image', src: '/media/interlace/loops-preview.png', caption: 'Interlace Loop Studio — procedural motifs sharing a palette and loop clock' },
+      { type: 'image', src: '/media/interlace/preview.jpg', caption: 'Torus mode — portfolio edition adapted from Tortoise by nurecas' },
     ],
-    links: { live: '/showcases/interlace/index.html' },
+    longDesc: [
+      { heading: 'One visual language', text: 'Build a composition from four motif families. Adjust their balance, symmetry, density, shape detail and colours. A shared BPM clock and phase controls keep layers coordinated, while seeded variations let you revisit a design.' },
+      { heading: 'Loops you can take away', text: 'Start with Signal Garden, Crystal Circuit, Fluid Bloom or Orbital Pulse. Export a full-resolution PNG, save editable settings, or record a WebM loop in a supported browser. Recording runs in real time and can drop frames on busy devices. No account is needed.' },
+      { heading: 'Two modes, one evolving project', text: 'The loop studio is a new Canvas-based implementation for this edition. The separate torus mode retains the mathematical construction, renderer and generation system of the MIT-licensed Tortoise Generator by nurecas, with portfolio identity, documentation and mobile adjustments.' },
+    ],
+    links: { live: '/showcases/interlace/loops.html' },
   },
   {
     id: 'spacekayak', title: 'Spacekayak × Product Unconference', category: 'installations', year: '2025',

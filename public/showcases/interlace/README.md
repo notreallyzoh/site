@@ -1,10 +1,27 @@
 # Interlace
 
-**A toroidal playground — an evolving portfolio edition by Zoheb Mamoo / @notreallyzoh.**
+**Loops and woven geometry — an evolving visual instrument by Zoheb Mamoo / @notreallyzoh.**
 
 Interlace explores woven geometry through recursive Hopf tori, counter-rotating fibre families and sculptural interpretations. It is adapted from **Tortoise Generator by nurecas**, whose mathematical construction and rendering implementation form the foundation of this edition.
 
-## Try it
+## Loop studio (new)
+
+Open `loops.html`. This standalone Canvas 2D studio has no dependencies, account requirements or API calls. It creates original procedural artwork inspired by a shared visual reference, without embedding or tracing the reference image.
+
+- Four compositions: Signal Garden, Crystal Circuit, Fluid Bloom and Orbital Pulse.
+- Crystal glyphs, petal fans, orbital rings and flowing ribbons; independent layer amounts.
+- Diamond, grid and band layouts, mirrored pairs or radial alternation, seed, density, motif scale and detail.
+- Shared three-colour palette, custom colours, ground, hue offset, glow and line weight.
+- BPM, bars in 4/4, integer cycles, movement and phase spread. Phase zero and one render the same frame. Movement zero freezes the artwork.
+- Pause, restart, phase scrub and full screen. Reduced-motion preferences start paused.
+- Panoramic, landscape, square and portrait output. PNG capture and versioned JSON settings import/export.
+- WebM recording requests 30 fps for one loop in real time. Supported codecs vary by browser; use a recent desktop Chromium browser for best results. Recording locks composition controls, can be cancelled, and cancels if the tab is hidden. It is silent, uses an internal BPM clock, and is not frame-exact offline rendering or audio analysis. Busy devices can drop frames.
+
+A shared duration and phase origin let exported variants follow the same timing. To align separate clips in an editor, retain the same BPM, bars and cycles and start them together. Live browser instances are not externally clock-synchronised.
+
+The loop studio (`loops.html`, `loops.css`, `loops.js`) is a new implementation for this portfolio edition. It does not use the inherited torus renderer. The original source credits below apply to torus mode.
+
+## Try torus mode
 
 From the portfolio, open `/showcases/interlace/index.html`. The app is a standalone HTML page with no build step. To run this directory separately, serve it with `python -m http.server 8000`, then open `http://localhost:8000`.
 
@@ -43,3 +60,5 @@ Code retains the [MIT licence](./LICENSE), including the original copyright noti
 ## Iteration log
 
 - **23 October 2026:** Initial Interlace portfolio edition and local integration. No hosted publication or paid generation performed.
+
+- **30 October 2026:** Added the original loop studio with shared-palette motifs, deterministic periodic motion, settings and PNG exports, and real-time WebM capture. Torus mode remains accessible through the mode links.
