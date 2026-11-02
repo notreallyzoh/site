@@ -242,15 +242,15 @@ export const PROJECTS = [
   {
     id: 'interlace', title: 'Interlace — Loops & woven geometry', category: 'explorations', year: 'In progress',
     showcase: true, showcaseLabel: 'Generative visual instrument',
-    desc: 'A browser studio for coordinated geometric loops: crystal glyphs, petal fans, orbital rings and flowing ribbons, with shared colour and rhythm controls.',
+    desc: 'A live visual instrument for connected stage compositions, nested motifs and coordinated loops. Shape the space around a performer and evolve its energy during a set.',
     role: 'Creative direction, loop-studio development & portfolio adaptation',
     tech: ['Canvas 2D', 'JavaScript', 'Three.js', 'WebGL', 'Procedural Geometry'],
     media: [
-      { type: 'image', src: '/media/interlace/loops-preview.png', caption: 'Interlace Loop Studio — procedural motifs sharing a palette and loop clock' },
+      { type: 'image', src: '/media/interlace/loops-preview.png', caption: 'Interlace Stage Studio — connected structures with adjustable performer clearance' },
       { type: 'image', src: '/media/interlace/preview.jpg', caption: 'Torus mode — portfolio edition adapted from Tortoise by nurecas' },
     ],
     longDesc: [
-      { heading: 'One visual language', text: 'Build a composition from four motif families. Adjust their balance, symmetry, density, shape detail and colours. A shared BPM clock and phase controls keep layers coordinated, while seeded variations let you revisit a design.' },
+      { heading: 'One visual language', text: 'Build connected stage canopies and nested structures around an adjustable DJ clearance area, or explore the original motif grid. Manual energy cues and an evolution control reshape the scene gradually; a clean output window follows the operator controls.' },
       { heading: 'Loops you can take away', text: 'Start with Signal Garden, Crystal Circuit, Fluid Bloom or Orbital Pulse. Export a full-resolution PNG, save editable settings, or record a WebM loop in a supported browser. Recording runs in real time and can drop frames on busy devices. No account is needed.' },
       { heading: 'Two modes, one evolving project', text: 'The loop studio is a new Canvas-based implementation for this edition. The separate torus mode retains the mathematical construction, renderer and generation system of the MIT-licensed Tortoise Generator by nurecas, with portfolio identity, documentation and mobile adjustments.' },
     ],

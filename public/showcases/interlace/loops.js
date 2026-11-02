@@ -4,22 +4,35 @@
   const $ = id => document.getElementById(id);
   const canvas = $('art'), ctx = canvas.getContext('2d', { alpha: false });
   const TAU = Math.PI * 2;
+  const glowCanvas=document.createElement('canvas'),glowCtx=glowCanvas.getContext('2d');
   const palettes = {
+    prismatic: ['#45bfff','#d9ff59','#ff60b5'],
     electric: ['#164bff', '#00ef9c', '#fff43a'], acid: ['#ae38ff', '#b8ff22', '#00d7ff'],
     ember: ['#ff4b19', '#ffd78b', '#79efff'], mono: ['#f2f1e9', '#a9b4bd', '#ffffff']
   };
-  const defaults = { layout:'diamond', symmetry:'mirror', columns:8, rows:2, scale:.86, detail:7, seed:271,
-    glyph:1, petal:1, orbit:.7, ribbon:.65, lattice:.3, palette:'electric',
-    color1:'#164bff', color2:'#00ef9c', color3:'#fff43a', background:'#050607', hue:0, glow:2, line:1,
-    bpm:120, bars:4, cycles:2, motion:.55, spread:.4, size:'1600x400' };
+  const defaults = { layout:'stage', symmetry:'mirror', columns:8, rows:2, scale:.86, detail:7, seed:271,
+    glyph:1, petal:1, orbit:1, ribbon:1, lattice:.55, palette:'prismatic',
+    color1:'#45bfff', color2:'#d9ff59', color3:'#ff60b5', background:'#050607', hue:0, glow:2, line:1,
+    bpm:120, bars:4, cycles:2, motion:.55, spread:.4, size:'1920x1080', stageStyle:'canopy', depth:3, links:.8, energy:.45, evolution:.25, clearWidth:.28, clearHeight:.42, clearX:.5, feather:.06, master:1 };
   const presets = {
-    garden: { ...defaults },
+    canopy: {...defaults},
+    portals: {...defaults, stageStyle:'portals', palette:'ember', depth:4, detail:9, energy:.65, evolution:.6},
+    cathedral: {...defaults, stageStyle:'cathedral', palette:'acid', depth:5, detail:10, links:1, energy:.7, clearHeight:.5},
+    garden: { ...defaults, layout:'diamond' },
     circuit: { ...defaults, seed:17, layout:'grid', columns:10, detail:5, petal:0, orbit:.25, ribbon:.3, lattice:.6, palette:'acid', scale:.8, motion:.3 },
-    bloom: { ...defaults, seed:74, columns:7, symmetry:'radial', glyph:0, petal:1, orbit:.3, ribbon:1, lattice:.15, palette:'ember', detail:9, scale:1, motion:.8, spread:.7 },
+    bloom: { ...defaults, layout:'diamond', seed:74, columns:7, symmetry:'radial', glyph:0, petal:1, orbit:.3, ribbon:1, lattice:.15, palette:'ember', detail:9, scale:1, motion:.8, spread:.7 },
     pulse: { ...defaults, seed:81, layout:'bands', columns:6, rows:3, glyph:.3, petal:.2, orbit:1, ribbon:.2, lattice:.2, palette:'acid', cycles:4, motion:.75 }
   };
   let state = {...defaults}, phase = 0, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches;
   let lastTime = performance.now(), lastDraw = 0, recording = null;
+  let liveEnergy=state.energy,liveEvolution=state.evolution,blackout=false;
+  const query=new URLSearchParams(location.search),outputMode=query.get('output')==='1';
+  const session=query.get('session')||crypto.randomUUID();
+  const channel=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('interlace-stage-'+session):null;
+  let remote=null;
+  document.body.classList.toggle('output-mode',outputMode);
+  ['columns','rows','symmetry'].forEach(id=>$(id).closest('label').classList.add('tiled-only'));
+
   const controls = Object.keys(defaults);
   const duration = () => 60 / state.bpm * 4 * state.bars;
   const message = text => { $('status').textContent = text; };
@@ -101,7 +114,7 @@
     }
     ctx.restore();
   }
-  function render(p=phase) {
+  function render(p=phase,live=false) {
     // Normalize endpoints before trigonometry so phase 0 and 1 are identical pixels.
     p=((p%1)+1)%1;
     const [w,h]=state.size.split('x').map(Number);
@@ -110,7 +123,8 @@
     ctx.fillStyle=state.background;ctx.fillRect(0,0,w,h);
     const cs=colors(), cw=w/state.columns, ch=h/state.rows;
     const r=Math.min(cw,ch)*.43*state.scale, clock=TAU*p*state.cycles;
-    for(let row=0;row<state.rows;row++)for(let col=0;col<state.columns;col++) {
+    if(state.layout==='stage')InterlaceStage.draw(ctx,state,p,cs,live?liveEnergy:state.energy,live?liveEvolution:state.evolution);
+    else for(let row=0;row<state.rows;row++)for(let col=0;col<state.columns;col++) {
       const mirror=state.symmetry==='mirror', mc=mirror?Math.min(col,state.columns-1-col):col;
       const id=row*state.columns+mc, rnd=hash(id+1), kind=(mc+row*2+Math.floor(hash(row+13)*4))%4;
       const t=clock+state.spread*TAU*(mc/state.columns+row/state.rows)*.5;
@@ -149,12 +163,26 @@
       ctx.restore();
     }
     ctx.globalAlpha=1;ctx.shadowBlur=0;
+    if(state.layout==='stage'&&state.glow>0){
+      const gw=Math.round(w/4),gh=Math.round(h/4);if(glowCanvas.width!==gw||glowCanvas.height!==gh){glowCanvas.width=gw;glowCanvas.height=gh;}
+      glowCtx.clearRect(0,0,gw,gh);glowCtx.filter=`blur(${state.glow/4}px)`;glowCtx.drawImage(canvas,0,0,gw,gh);glowCtx.filter='none';
+      ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.4;ctx.drawImage(glowCanvas,0,0,w,h);ctx.restore();
+    }
+    InterlaceStage.clearance(ctx,state);
+    if(state.master<1){ctx.fillStyle='#000';ctx.globalAlpha=1-state.master;ctx.fillRect(0,0,w,h);ctx.globalAlpha=1;}
+    if(blackout || (outputMode&&!remote)){ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);}
   }
   function sync() {
     for(const key of controls) {
       $(key).value=state[key];
       const out=document.querySelector(`output[for="${key}"]`);if(out)out.textContent=state[key];
     }
+    document.body.classList.toggle('stage-mode',state.layout==='stage');
+    const guide=$('clearanceGuide');guide.style.display=$('guide').checked&&state.layout==='stage'&&state.clearWidth>0?'block':'none';
+    const box=canvas.getBoundingClientRect(),wrap=canvas.parentElement.getBoundingClientRect();
+    guide.style.left=(box.left-wrap.left+box.width*state.clearX)+'px';guide.style.width=(box.width*state.clearWidth)+'px';guide.style.height=(box.height*state.clearHeight)+'px';guide.style.bottom=(wrap.bottom-box.bottom)+'px';
+    $('blackout').setAttribute('aria-pressed',String(blackout));
+    document.querySelectorAll('[data-energy]').forEach(b=>b.classList.toggle('active',Math.abs(Number(b.dataset.energy)-state.energy)<.02));
     $('duration').textContent=`${duration().toFixed(2)} s / ${state.bpm} BPM`;
     $('play').textContent=playing?'Pause':'Play';$('phase').value=phase;
   }
@@ -177,12 +205,47 @@
     const size=state.size;state={...presets[name],size};if(size!=='1600x400')fitGrid();setPalette();phase=0;lastTime=performance.now();sync();render();
     $('presetName').textContent=$('preset').selectedOptions[0].textContent;
   }
+  function cue(value){if(recording)return;state.energy=Number(value);sync();publish();}
+  function toggleBlackout(){blackout=!blackout;sync();render(phase,true);publish();}
+  $('guide').onchange=sync;new ResizeObserver(()=>sync()).observe(canvas);
+  document.querySelectorAll('[data-energy]').forEach(b=>b.onclick=()=>cue(b.dataset.energy));
+  $('blackout').onclick=toggleBlackout;
+  $('outputFullscreen').onclick=()=>document.body.requestFullscreen().catch(()=>{});
+  $('output').onclick=()=>{
+    if(!channel){message('Clean output needs a browser with BroadcastChannel support.');return;}
+    const url=new URL(location.href);url.searchParams.set('output','1');url.searchParams.set('session',session);
+    const win=window.open(url,'interlace-'+session,'popup,width=1280,height=720');
+    message(win?'Move the clean output window to your projector screen, then choose Full screen output.':'Allow pop-ups for this page to open the output window.');
+  };
+  document.addEventListener('keydown',e=>{
+    if(outputMode||e.ctrlKey||e.metaKey||e.altKey||e.repeat||e.target.closest('input,select,textarea,[contenteditable]'))return;
+    if(e.key.toLowerCase()==='b'){e.preventDefault();toggleBlackout();}
+    if(recording)return;
+    if(['1','2','3','4'].includes(e.key)){e.preventDefault();cue([.15,.45,.85,.25][Number(e.key)-1]);}
+    if(e.code==='Space'&&e.target.tagName!=='BUTTON'){e.preventDefault();$('play').click();}
+  });
+  function publish(){
+    if(outputMode||!channel)return;
+    const projected=playing&&!recording?(phase+(performance.now()-lastTime)/1000/duration())%1:phase;
+    channel.postMessage({settings:state,phase:projected,playing:playing||!!recording,energy:liveEnergy,evolution:liveEvolution,blackout});
+  }
+  if(channel){
+    channel.onmessage=e=>{
+      if(!outputMode)return;
+      try{
+        const d=e.data,next={...defaults};for(const key of controls)next[key]=readValue(key,d.settings[key]);
+        if(!Number.isFinite(d.phase)||!Number.isFinite(d.energy)||!Number.isFinite(d.evolution))return;
+        state=next;phase=d.phase;playing=!!d.playing;blackout=!!d.blackout;liveEnergy=Math.max(0,Math.min(1,d.energy));liveEvolution=Math.max(0,Math.min(1,d.evolution));remote={phase,time:performance.now()};sync();render(phase,true);
+      }catch{/* Ignore incomplete messages from another page. */}
+    };
+    if(!outputMode)setInterval(publish,100);
+  }
   controls.forEach(key=>$(key).addEventListener(['bpm','seed'].includes(key)?'change':'input',()=>{
     try{state[key]=readValue(key,$(key).value);}catch{return;}
     if(key==='palette')setPalette();
     if(key==='size'){fitGrid();message('Canvas changed and grid adapted. Adjust columns and rows to refine the density.');}
     if(/^color[123]$/.test(key))state.palette='custom';
-    $('presetName').textContent='Custom composition';sync();render();
+    $('presetName').textContent='Custom composition';sync();render(phase,true);publish();
   }));
   // Restore valid values on blur if an incomplete number was left in a field.
   ['bpm','seed'].forEach(key=>$(key).addEventListener('change',sync));
@@ -196,24 +259,24 @@
     const url=URL.createObjectURL(blob), a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
   }
   $('png').onclick=()=>canvas.toBlob(blob=>{if(blob){download(blob,`interlace-${state.seed}.png`);message('PNG saved at the selected canvas size.');}else message('PNG export failed.');},'image/png');
-  $('save').onclick=()=>{download(new Blob([JSON.stringify({format:'interlace-loop',version:1,settings:state},null,2)],{type:'application/json'}),`interlace-${state.seed}.json`);message('Settings saved. Load them to recreate this composition.');};
+  $('save').onclick=()=>{download(new Blob([JSON.stringify({format:'interlace-loop',version:2,settings:state},null,2)],{type:'application/json'}),`interlace-${state.seed}.json`);message('Settings saved. Load them to recreate this composition.');};
   $('load').onclick=()=>$('file').click();
   $('file').onchange=async()=>{
     const file=$('file').files[0];if(!file)return;
     try {
       if(file.size>65536)throw new Error('Settings file is too large.');
       const data=JSON.parse(await file.text());
-      if(data.format!=='interlace-loop'||data.version!==1||!data.settings)throw new Error('Choose an Interlace Loop Studio settings file.');
+      if(data.format!=='interlace-loop'||![1,2].includes(data.version)||!data.settings)throw new Error('Choose an Interlace Loop Studio settings file.');
       const next={...defaults};for(const key of controls)if(Object.hasOwn(data.settings,key))next[key]=readValue(key,data.settings[key]);
-      state=next;phase=0;sync();render();$('presetName').textContent='Loaded composition';message('Composition loaded.');
+      state=next;phase=0;liveEnergy=state.energy;liveEvolution=state.evolution;sync();render();$('presetName').textContent='Loaded composition';message('Composition loaded.');
     }catch(err){message(`Could not load settings: ${err.message}`);}finally{$('file').value='';}
   };
   const mime = typeof MediaRecorder!=='undefined' ? ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) : null;
   const canRecord=!!mime && typeof canvas.captureStream==='function';
   if(!canRecord){$('record').disabled=true;message('Video recording is unavailable here. PNG and settings export are available.');}
   function lock(active) {
-    document.querySelectorAll('aside input, aside select, aside button, .transport button, #phase').forEach(el=>{el.disabled=active;});
-    $('record').disabled=!canRecord;$('record').textContent=active?'Cancel recording':'Record one loop';
+    document.querySelectorAll('aside input, aside select, aside button, .transport button, .live-controls input, .live-controls button, #phase').forEach(el=>{el.disabled=active;});
+    $('blackout').disabled=false;$('record').disabled=!canRecord;$('record').textContent=active?'Cancel recording':'Record one loop';
   }
   function finishRecording(cancel=false) {
     if(!recording)return;recording.cancelled ||= cancel;clearTimeout(recording.timer);
@@ -223,7 +286,7 @@
     if(recording){finishRecording(true);return;}
     let stream;const previous={playing,phase};
     try {
-      playing=false;phase=0;render(0);sync();
+      playing=false;phase=0;liveEnergy=state.energy;liveEvolution=state.evolution;render(0);sync();
       stream=canvas.captureStream(30);
       const recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:12000000});
       const rec={recorder,stream,chunks:[],start:performance.now(),previous,cancelled:false};recording=rec;
@@ -242,13 +305,20 @@
   };
   document.addEventListener('visibilitychange',()=>{lastTime=performance.now();if(document.hidden && recording)finishRecording(true);});
   function tick(now) {
-    const dt=(now-lastTime)/1000;lastTime=now;
-    if(recording)phase=Math.min((now-recording.start)/1000/duration(),1);
-    else if(playing && !document.hidden)phase=(phase+dt/duration())%1;
-    if((recording||playing) && now-lastDraw>=1000/30){render();$('phase').value=phase;lastDraw=now;}
+    const dt=Math.max(0,(now-lastTime)/1000);lastTime=now;
+    const transitioning=Math.abs(liveEnergy-state.energy)>.0001||Math.abs(liveEvolution-state.evolution)>.0001;
+    if(outputMode){
+      if(remote){phase=(remote.phase+(playing?Math.min(now-remote.time,3000)/1000/duration():0))%1;}
+    }else{
+      const blend=1-Math.exp(-Math.min(dt,.1)*2.5);
+      liveEnergy+=(state.energy-liveEnergy)*blend;liveEvolution+=(state.evolution-liveEvolution)*blend;
+      if(recording)phase=Math.min((now-recording.start)/1000/duration(),1);
+      else if(playing)phase=(phase+dt/duration())%1;
+    }
+    if((outputMode||recording||playing||transitioning) && now-lastDraw>=1000/30){render(phase,true);$('phase').value=phase;lastDraw=now;}
     requestAnimationFrame(tick);
   }
   sync();render();requestAnimationFrame(tick);
   // Read-only snapshot and deterministic render entry point for seam verification.
-  window.loopStudio={render, get settings(){return {...state};},get duration(){return duration();}};
+  window.loopStudio={render, get settings(){return {...state};},get duration(){return duration();},get live(){return {energy:liveEnergy,evolution:liveEvolution,blackout,outputMode};}};
 })();

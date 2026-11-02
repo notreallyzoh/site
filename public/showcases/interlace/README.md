@@ -8,7 +8,7 @@ Interlace explores woven geometry through recursive Hopf tori, counter-rotating 
 
 Open `loops.html`. This standalone Canvas 2D studio has no dependencies, account requirements or API calls. It creates original procedural artwork inspired by a shared visual reference, without embedding or tracing the reference image.
 
-- Four compositions: Signal Garden, Crystal Circuit, Fluid Bloom and Orbital Pulse.
+- Stage compositions: Living Canopy, Twin Sanctum and Neural Cathedral. Classic tiled compositions: Signal Garden, Crystal Circuit, Fluid Bloom and Orbital Pulse.
 - Crystal glyphs, petal fans, orbital rings and flowing ribbons; independent layer amounts.
 - Diamond, grid and band layouts, mirrored pairs or radial alternation, seed, density, motif scale and detail.
 - Shared three-colour palette, custom colours, ground, hue offset, glow and line weight.
@@ -62,3 +62,15 @@ Code retains the [MIT licence](./LICENSE), including the original copyright noti
 - **23 October 2026:** Initial Interlace portfolio edition and local integration. No hosted publication or paid generation performed.
 
 - **30 October 2026:** Added the original loop studio with shared-palette motifs, deterministic periodic motion, settings and PNG exports, and real-time WebM capture. Torus mode remains accessible through the mode links.
+
+## Stage performance (31 October 2026)
+
+Connected Stage replaces isolated tiles with mirrored nested portals, rosettes, braided connections, an overhead canopy and wing structures. The supplied [Captain Hook / TAS Visuals reference](https://www.youtube.com/watch?v=Nyr-iJqr1mU) informed the principles of nesting, connection and changing density; no video frames or artwork are included in the renderer.
+
+- Room energy controls the amplitude, ornament visibility and intensity together, with gradual transitions. Cue keys 1–4 select Warm-up, Build, Peak and Release. Scene evolution continuously reshapes the same structure. These are manual controls, not microphone or automatic crowd analysis.
+- DJ clearance is a black arch anchored to the bottom edge. Adjust width, height, horizontal position and edge softness. Width zero disables it. The optional guide is preview-only and never appears in recorded video or clean output.
+- Master brightness and B blackout affect preview, recordings and the output window. Space toggles playback. Shortcuts do not interfere with typing into fields.
+- Open clean output to create a separate browser window. Move it to an extended projector display, then select Full screen output. BroadcastChannel keeps it connected to this control window on the same browser and origin; separate computers and browsers are not linked. Keep the controller open. An output window holds its phase after three seconds without updates. A normal browser window can show an output fullscreen button; that button is hidden in fullscreen.
+- Use MadMapper, Resolume or equivalent for geometric warping, projector alignment and multi-surface routing. This app produces stage-aware source content and a basic clearance mask, not a calibrated projection-mapping system. Test clearance on the real stage before the show.
+- Exports freeze energy/evolution at their selected values for a repeatable loop. Recording remains real-time; verify exported timing and playback in your VJ software. Live cue changes are locked during a one-loop recording (blackout remains available).
+- Settings version 2 adds stage controls; version 1 files continue to load with their original tiled layout.
