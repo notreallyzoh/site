@@ -5,4 +5,5 @@ import { spotifyPlugin } from './server/spotify.js'
 export default defineConfig({
   base: process.env.PAGES_BASE || '/',
   plugins: [react(), spotifyPlugin()],
+  build: { rollupOptions: { input: { portfolio: 'index.html', developer: 'dev/index.html' } } },
 })

@@ -44,3 +44,10 @@ Open `http://127.0.0.1:4175/site/`. When finished, stop the preview and run `Rem
 No commit, push or remote deployment was performed during preparation.
 
 Reference: https://vite.dev/guide/static-deploy.html#github-pages
+
+## Two portfolio entry points
+
+- Creative technology: `/` (GitHub Pages: `/site/`)
+- Software engineering: `/dev/` (GitHub Pages: `/site/dev/`)
+
+Vite builds both HTML entry points. The developer page uses the shared project data and a separate stylesheet. Its resume is `public/developer-resume.pdf`; the creative resume remains `public/resume.pdf`. Keep local links routed through `localUrl` so repository-based Pages URLs work on direct visits and refresh.

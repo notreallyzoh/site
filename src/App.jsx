@@ -63,6 +63,7 @@ function Nav() {
     <button ref={burgerRef} className="nav__burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(v => !v)}><span>{open ? 'Close' : 'Menu'}</span><span className="nav__burger-icon" aria-hidden="true">{open ? '−' : '+'}</span></button>
     <nav ref={menuRef} id="main-navigation" className="nav__links" aria-label="Main navigation">
       {NAV_ITEMS.map(item => <a key={item.id} className={`nav__link ${active === item.id ? 'active' : ''}`} aria-current={active === item.id ? 'location' : undefined} href={`#${item.id}`} onClick={() => setOpen(false)}>{item.label}</a>)}
+      <a className="nav__link" href={localUrl('/dev/')}>Software portfolio ↗</a>
       <a className="nav__resume" href={localUrl("/resume.pdf")} download>Résumé <span aria-hidden="true">↓</span></a>
     </nav>
     <button className="nav__theme" onClick={() => setTheme(t => t === 'classy' ? 'bold' : 'classy')} aria-label={theme === 'classy' ? 'Switch to light theme' : 'Switch to dark theme'} title="Change theme"><span aria-hidden="true">{theme === 'classy' ? '◐' : '◑'}</span></button>
