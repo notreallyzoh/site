@@ -63,7 +63,7 @@ function Nav() {
     <button ref={burgerRef} className="nav__burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(v => !v)}><span>{open ? 'Close' : 'Menu'}</span><span className="nav__burger-icon" aria-hidden="true">{open ? '−' : '+'}</span></button>
     <nav ref={menuRef} id="main-navigation" className="nav__links" aria-label="Main navigation">
       {NAV_ITEMS.map(item => <a key={item.id} className={`nav__link ${active === item.id ? 'active' : ''}`} aria-current={active === item.id ? 'location' : undefined} href={`#${item.id}`} onClick={() => setOpen(false)}>{item.label}</a>)}
-      <a className="nav__link" href={localUrl('/dev/')}>Software portfolio ↗</a>
+      <a className="nav__link nav__developer" href={localUrl('/dev/')}>Developer portfolio ↗</a>
       <a className="nav__resume" href={localUrl("/resume.pdf")} download>Résumé <span aria-hidden="true">↓</span></a>
     </nav>
     <button className="nav__theme" onClick={() => setTheme(t => t === 'classy' ? 'bold' : 'classy')} aria-label={theme === 'classy' ? 'Switch to light theme' : 'Switch to dark theme'} title="Change theme"><span aria-hidden="true">{theme === 'classy' ? '◐' : '◑'}</span></button>
@@ -88,8 +88,8 @@ function Hero() {
     <div className="hero__shade" />
     <div className="hero__content">
       <p className="hero__intro">Zoheb Mamoo <span>/</span> New media artist & creative technologist</p>
-      <h1 className="hero__heading"><span>Art that moves.</span><span>Spaces that</span><span className="hero__serif">respond.</span></h1>
-      <div className="hero__actions"><a href="#work" className="neo-btn">Explore the work <Arrow /></a><a href={localUrl("/resume.pdf")} download className="hero__resume">Download résumé <span aria-hidden="true">↓</span></a></div>
+      <h1 className="hero__heading"><span>Live visuals.</span><span>Installations.</span><span className="hero__serif">Experiments.</span></h1>
+      <div className="hero__actions"><a href="#work" className="neo-btn">Explore the work <Arrow /></a><a href={localUrl("/resume.pdf")} download className="hero__resume">Download résumé <span aria-hidden="true">↓</span></a><a className="hero__developer" href={localUrl('/dev/')}>Developer portfolio <span aria-hidden="true">↗</span></a></div>
     </div>
     <div className="hero__bottom">
       <p className="hero__location">Based in Bangalore<br/><span>Working across art, code & physical space</span></p>
@@ -133,7 +133,7 @@ function Work() {
   }, [cat]);
   return <section className="section work" id="work" data-section="work">
     <div className="container">
-      <div className="section-heading"><div><p className="section-label">A selection of things I've made & been part of</p><h2 className="work__title">Selected <em>work.</em></h2></div><p className="section-note">From a screen to a space.<br/>Ideas made tangible, together.</p></div>
+      <div className="section-heading"><div><p className="section-label">A selection of things I've made & been part of</p><h2 className="work__title">Selected <em>work.</em></h2></div><p className="section-note">Installations, live visuals,<br/>websites and personal projects.</p></div>
       <div className="work__toolbar"><div className="work__tabs" aria-label="Filter projects">
         <button className={`work__tab ${cat === 'all' ? 'active' : ''}`} aria-pressed={cat === 'all'} onClick={() => setCat('all')}>All work <sup>{PROJECTS.length - websites.length + 1}</sup></button>
         {CATEGORIES.map(c => <button id={`filter-${c.id}`} key={c.id} className={`work__tab ${cat === c.id ? 'active' : ''}`} aria-pressed={cat === c.id} onClick={() => setCat(c.id)}>{c.label} <sup>{PROJECTS.filter(p => (p.categories || [p.category]).includes(c.id)).length}</sup></button>)}
@@ -328,15 +328,15 @@ function ProjectCard({ p }) {
 
 function About() {
   return <section className="section about" id="about" data-section="about"><div className="container">
-    <div className="about__intro"><p className="section-label">The person behind the pixels</p><h2>I think in code.<br/>I make in <em>many mediums.</em></h2></div>
-    <div className="about__body"><div className="about__identity"><img src={localUrl("/logo.png")} alt="Zoh's artist mark" width="112" height="112"/><p>Zoheb Mamoo<span>Artist. Engineer. Collaborator.</span></p></div><div className="about__bio"><p>{PERSONAL.bio[1]}</p><p>{PERSONAL.bio[2]}</p><p>{PERSONAL.longBio}</p><a className="text-link" href={`https://github.com/${PERSONAL.github}`} target="_blank" rel="noopener noreferrer">Explore my code <Arrow diagonal /></a></div></div>
-    <div className="toolkit"><h3>Across my practice</h3><div className="toolkit__list">{TECH_STACK.map(c => <details key={c.cat} className="toolkit__row"><summary>{c.cat}<span aria-hidden="true">+</span></summary><p>{c.tools.join(' · ')}</p></details>)}</div></div>
+    <div className="about__intro"><p className="section-label">About me</p><h2>I'm Zoheb.<br/>I work with <em>art and code.</em></h2></div>
+    <div className="about__body"><div className="about__identity"><img src={localUrl("/logo.png")} alt="Zoh's artist mark" width="112" height="112"/><p>Zoheb Mamoo<span>New media artist & software engineer</span></p></div><div className="about__bio"><p>{PERSONAL.bio[1]}</p><p>{PERSONAL.bio[2]}</p><p>{PERSONAL.longBio}</p><a className="text-link" href={`https://github.com/${PERSONAL.github}`} target="_blank" rel="noopener noreferrer">Explore my code <Arrow diagonal /></a></div></div>
+    <div className="toolkit"><h3>Tools I use</h3><div className="toolkit__list">{TECH_STACK.map(c => <details key={c.cat} className="toolkit__row"><summary>{c.cat}<span aria-hidden="true">+</span></summary><p>{c.tools.join(' · ')}</p></details>)}</div></div>
   </div></section>;
 }
 
 function Experience() {
   return <section className="section experience" id="experience" data-section="experience"><div className="container">
-    <div className="section-heading"><h2>Creative practice.<br/><em>Engineering roots.</em></h2><a href={localUrl("/resume.pdf")} download className="text-link">Download résumé <span aria-hidden="true">↓</span></a></div>
+    <div className="section-heading"><h2>Work &<br/><em>experience.</em></h2><a href={localUrl("/resume.pdf")} download className="text-link">Download résumé <span aria-hidden="true">↓</span></a></div>
     <div className="exp__list">{EXPERIENCES.map(ex => <article key={ex.id} className="exp__row"><div className="exp__period">{ex.period}</div><div className="exp__body"><h3>{ex.role}</h3><p className="exp__co">{ex.company} <span>· {ex.type}</span></p><p className="exp__desc">{ex.desc}</p><ul>{ex.highlights.map(h => <li key={h}>{h}</li>)}</ul><p className="exp__skills">{ex.skills.join(' / ')}</p></div></article>)}</div>
   </div></section>;
 }
@@ -350,8 +350,8 @@ function Contact() {
     catch { window.location.href = `mailto:${PERSONAL.email}`; }
   };
   return <footer className="section contact" id="contact" data-section="contact"><div className="container">
-    <p className="section-label">A role, a collaboration, an unexpected idea</p>
-    <a className="contact__headline" href={`mailto:${PERSONAL.email}`}><h2>Let's make<br/><em>something move.</em></h2><Arrow diagonal /></a>
+    <p className="section-label">For work and collaborations</p>
+    <a className="contact__headline" href={`mailto:${PERSONAL.email}`}><h2>Get in<br/><em>touch.</em></h2><Arrow diagonal /></a>
     <div className="contact__actions"><a href={`mailto:${PERSONAL.email}`}>{PERSONAL.email}</a><button onClick={copyEmail} aria-label="Copy email address"><span aria-live="polite">{copied ? 'Copied ✓' : 'Copy email'}</span></button></div>
     <div className="contact__footer"><a href="#hero" className="contact__wordmark">notreallyzoh.</a><div className="contact__links">{SOCIALS.filter(s => s.label !== 'Email').map(s => <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer">{s.label} <Arrow diagonal /></a>)}<a href="https://www.instagram.com/notreallyzoh/" target="_blank" rel="noopener noreferrer">Instagram <Arrow diagonal /></a></div><span>© {new Date().getFullYear()} Zoheb Mamoo</span><a href="#hero" className="back-top">Back to top ↑</a></div>
   </div></footer>;

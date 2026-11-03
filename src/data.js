@@ -8,9 +8,9 @@ export const PERSONAL = {
   github: 'notreallyzoh',
   linkedin: 'https://www.linkedin.com/in/zoheb-mamoo/',
   bio: [
-    'Blurring the boundaries between art, code, and interaction.',
-    'New media artist and creative technologist exploring immersive storytelling through projection mapping, generative visuals, real-time systems, and interactive installations.',
-    'Building site-specific experiences, VJ sets, sculptural pieces, and reactive environments at the intersection of digital expression and physical experience.',
+    'I make live visuals, interactive installations and software.',
+    'I’m a new media artist and creative technologist based in Bangalore. I make live visuals, work on projection mapping and build interactive installations.',
+    'I work with musicians, artists and event teams, and spend time experimenting with code, sensors and generative visuals.',
   ],
   longBio: 'Exhibitions at festivals like Zensciences and 1/0 in Bangalore, installations for Shroomsabha, Bloom in Green, Lay Festival, and Grounddown. VJ/Live Visual Artist for music IPs. Background as a Software Engineer with expertise in web development, C++, and mathematical engines. Led a college robotics team building underwater and maze-solving robots.',
 };

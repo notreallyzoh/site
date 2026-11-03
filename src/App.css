@@ -178,3 +178,8 @@
 .detail__role-lead h2 { font-size:clamp(1.6rem,3vw,2.8rem); margin-bottom:18px; }
 .detail__role-lead > p:last-child { max-width:900px; color:var(--accent); font-size:clamp(1rem,1.5vw,1.2rem); line-height:1.65; }
 .detail__role-lead .section-label { margin-bottom:12px; }
+
+/* Small cross-link, visible on the landing page as well as in the menu. */
+.hero__developer { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: .8rem; color: #d4d6cc; text-decoration: underline; text-underline-offset: 5px; }
+.hero__developer:hover { color: #fff; }
+.nav__developer { font-size: .85rem; }
