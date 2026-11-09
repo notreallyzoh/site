@@ -71,3 +71,11 @@ Owner-supplied deployment history: Obsidian digital brain, role-specific agents,
 The source graph has idle node status despite finished/progress fields and an approved review. These differences remain visible. The flow is a real saved FFmpeg test-pattern pipeline, not client footage or a running job. The task checkbox for ALIFA concerns its brief/checklist, not proof of whole-project delivery. Agent dialogue is labelled generated discussion, not verified operational evidence. No Hermes chat history was exported.
 
 Public data is an explicit allowlist assembled from individually inspected files. Raw vault files, staging addresses, infrastructure/account details, credentials and unrelated personal material are excluded. Full private source is retained only outside the site repository under the workspace tmp directory. No backend calls, message sends or write actions are part of the archive.
+
+## Actual console frontend demo
+
+`public/showcases/studiohq/console/` vendors the original hq-app frontend (`app.js`, `canvas.js`, `style.css`, `index.html`) from source commit `5f137beb738495dda6f8a0785a9b07a435cfeb65`. This is the actual window manager and canvas, not an imitation archive interface. `demo.js` adapts the allowlisted historical data to its API response shapes. `history.js` contains the same reviewed public selection as archive/history.json.
+
+Portfolio-specific changes: isolated local-storage keys; historical dates and labels; original review images inside history rows; historical event list in the agenda; loadouts focus on populated panes; unavailable operational panes hidden; agent, publication and record-write controls disabled. The transport allows only in-memory canvas geometry edits, never a network request. Read-only data remains unchanged. The optional bridge, study animation, Telegram SDK and sound integration are not loaded. No server code, auth data or vault raw records are distributed.
+
+Validation: syntax checks, production build, desktop/mobile browser checks; screenshot lightbox, library expansion, five-node inspector, layout navigation and transport rejection tested. Static preview used deliberately: booting the production server is unnecessary and would contradict the read-only demo scope. Original source repo was not modified or pushed.

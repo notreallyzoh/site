@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>StudioHQ — Interactive historical console</title><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"><script src="./history.js"></script><script src="./demo.js"></script>
+<link rel="stylesheet" href="./style.css" /><link rel="stylesheet" href="./demo.css">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- ..//canvas: {THE PRODUCTION FLOOR}'s one display moment (giant condensed
+     caps behind a constellation cluster, see --display in style.css) — CDN,
+     must degrade gracefully: the --display stack's condensed system fallback
+     reads fine if this is blocked, same tolerance as GSAP/Tone/Three below. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" />
+<script>
+// scene-zero gate: decide BEFORE first paint whether the staged entrance
+// plays, so there's no flash of fully-visible chrome for app.js to hide
+// after the fact. Reduced-motion never plays it; same session only once.
+(function () {
+  try {
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var seen = sessionStorage.getItem('hq-history-console-scenezero-v1') === '1';
+    if (!reduced && !seen) document.documentElement.classList.add('scene-zero-pending');
+    sessionStorage.setItem('hq-history-console-scenezero-v1', '1');
+  } catch (e) {
+    // sessionStorage unavailable (private mode/etc) — just skip the gate, app.js still boots fine
+  }
+  // PERSONAL MODE (press 0): read before first paint so there's no flash of
+  // the wrong theme — same synchronous-head-script technique as the scene
+  // zero gate above. app.js owns writing this key; here we only read it.
+  try {
+    var mode = localStorage.getItem('hq-history-console-mode-v1') === 'personal' ? 'personal' : 'studio';
+    document.documentElement.setAttribute('data-mode', mode);
+  } catch (e) {
+    document.documentElement.setAttribute('data-mode', 'studio');
+  }
+})();
+</script>
+
+</head>
+<body><div class="demo-banner"><strong>STUDIOHQ / HISTORICAL DEMO</strong><span>Original app UI · Selected Jul–Oct 2026 records · No live agents</span><a href="../">Case study ↗</a><a href="../archive/">Record sources ↗</a></div><div class="demo-guide"><span>Drag pane headers, resize corners or use □ to focus.</span><button data-demo-pane="review">Review past work</button><button data-demo-pane="canvas">Explore the workflow</button><button data-demo-pane="library">Open the library</button><button id="demo-reset">Reset layout</button><span id="demo-status" role="status"></span></div>
+<div class="crt-grid" aria-hidden="true"></div>
+<div class="scan" aria-hidden="true"></div>
+
+<div class="stale-banner" id="stale-banner" hidden>
+  <span class="stale-banner-text" id="stale-banner-text">NEW BUILD DETECTED &mdash; RELOADING</span>
+  <button type="button" class="stale-banner-reload" id="stale-banner-reload" hidden>RELOAD</button>
+</div>
+
+<canvas id="wireframe-canvas" aria-hidden="true"></canvas>
+<div class="reticle" id="reticle" aria-hidden="true">
+  <div class="reticle-h"></div>
+  <div class="reticle-v"></div>
+  <div class="reticle-box">
+    <span class="rb-corner rb-tl"></span><span class="rb-corner rb-tr"></span>
+    <span class="rb-corner rb-bl"></span><span class="rb-corner rb-br"></span>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">▓</span>
+    <span class="brand-text">HQ<span class="dim">://</span>CONSOLE</span>
+  </div>
+  <div class="vitals">
+    <span class="live"><i class="live-dot" id="live-dot"></i>ARCHIVE</span>
+    <span class="tick" id="tick" aria-hidden="true"></span>
+    <span class="updated" id="updated">connecting&hellip;</span>
+  </div>
+</header>
+
+<div class="now-strip" id="now-strip" aria-live="polite">
+  <span class="now-strip-inner" id="now-strip-inner">booting&hellip;</span>
+</div>
+
+<nav class="railnav" id="railnav" aria-label="Pane navigator"></nav>
+
+<div class="loadout-strip" id="loadout-strip" role="group" aria-label="Layout loadouts"></div>
+
+<div class="global-toast" id="global-toast" role="status" aria-live="polite">
+  <span class="global-toast-text" id="global-toast-text"></span>
+</div>
+
+<main class="grid" id="grid">
+  <div class="snap-overlay" id="snap-overlay" aria-hidden="true"></div>
+
+  <section class="term module module-agenda" aria-labelledby="agenda-h" data-pane="agenda">
+    <div class="term-bar">
+      <h2 id="agenda-h">..//agenda: <span class="term-arg">{today}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div class="agenda-orchestration" id="agenda-orchestration" hidden></div>
+      <div class="agenda-continuations" id="agenda-continuations" hidden></div>
+      <div class="agenda-wrap">
+        <div class="agenda-grid" id="agenda-grid">
+          <div class="agenda-hours" id="agenda-hours"></div>
+          <div class="agenda-track" id="agenda-track"></div>
+        </div>
+        <div class="agenda-detail" id="agenda-detail" hidden></div>
+      </div>
+      <p class="empty" id="agenda-empty" hidden>no scheduled activity today</p>
+      <div class="agenda-deadlines" id="agenda-deadlines"></div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-credits" aria-labelledby="credits-h" data-pane="credits">
+    <div class="term-bar">
+      <h2 id="credits-h">..//credits: <span class="term-arg">{ai fuel}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div id="agents-active" class="agents-active">
+        <span class="agents-active-label">AGENTS ACTIVE</span>
+        <span class="roster-status off agent-chip" id="agent-chip-hermes"><i class="roster-dot off"></i>HERMES GATEWAY</span>
+        <span class="roster-status off agent-chip" id="agent-chip-claude"><i class="roster-dot off"></i>CLAUDE CODE <span id="agent-claude-count">&middot;0</span></span>
+        <span class="roster-status off agent-chip" id="agent-chip-gemini"><i class="roster-dot off"></i>GEMINI CLI</span>
+        <span class="agents-active-total" id="agents-active-total">0/3 online</span>
+      </div>
+      <div id="fallback-banner" class="fallback-banner ok">NOMINAL</div>
+      <div id="credits-bars" class="bars">
+        <p class="empty">no log data</p>
+      </div>
+      <div class="credits-foot">
+        <span id="credits-total">0 calls today</span>
+        <span id="credits-errs">0 &times;429 &middot; 0 &times;503</span>
+      </div>
+      <div class="credits-foot">
+        <span id="credits-jobs">0 claude-code jobs today</span>
+        <span id="credits-reset">resets &mdash;</span>
+      </div>
+      <div class="credits-section" id="credits-claude-code">
+        <h3 class="credits-section-h">CLAUDE CODE</h3>
+        <div class="credits-foot">
+          <span id="cc-engine">Claude Max subscription</span>
+        </div>
+        <div class="credits-foot">
+          <span id="cc-model">model: &mdash;</span>
+        </div>
+        <div class="credits-foot">
+          <span id="cc-jobs">0 jobs today</span>
+          <span id="cc-processes">0 processes running</span>
+        </div>
+      </div>
+      <div class="credits-section" id="credits-openrouter">
+        <h3 class="credits-section-h">OPENROUTER</h3>
+        <div class="credits-foot">
+          <span id="or-balance">balance: --</span>
+          <span id="or-daily">spent today: --</span>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-fuel" aria-labelledby="fuel-h" data-pane="fuel">
+    <div class="term-bar">
+      <h2 id="fuel-h">..//fuel: <span class="term-arg">{tank}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div class="credits-section" id="fuel-openrouter" style="margin-top:0; padding-top:0; border-top:none;">
+        <h3 class="credits-section-h">OPENROUTER</h3>
+        <div id="fuel-or-banner" class="fallback-banner ok">CHECKING&hellip;</div>
+        <div class="credits-foot">
+          <span id="fuel-or-remaining">remaining: --</span>
+          <span id="fuel-or-usage">usage: --</span>
+        </div>
+        <div class="credits-foot">
+          <span id="fuel-or-daily">today: --</span>
+          <span id="fuel-or-weekly">7d: --</span>
+        </div>
+      </div>
+
+      <div class="credits-section" id="fuel-hermes">
+        <h3 class="credits-section-h">HERMES ROUTING</h3>
+        <div class="credits-foot">
+          <span id="fuel-hermes-default">default: --</span>
+          <span id="fuel-hermes-effort">reasoning: --</span>
+        </div>
+        <ol class="fuel-ladder" id="fuel-hermes-ladder"><li class="empty">no data</li></ol>
+      </div>
+
+      <div class="credits-section" id="fuel-sessions">
+        <h3 class="credits-section-h">SESSION HEALTH</h3>
+        <div class="credits-foot">
+          <span id="fuel-session-open">0 open sessions</span>
+          <span id="fuel-session-zombie">0 zombie</span>
+        </div>
+        <div class="fuel-session-list" id="fuel-session-list"><p class="empty">no open sessions</p></div>
+        <div class="bars" id="fuel-token-bars"><p class="empty">no usage data</p></div>
+      </div>
+
+      <div class="credits-section" id="fuel-gemini">
+        <h3 class="credits-section-h">GEMINI FREE TIER <span class="fuel-proxy-tag" title="no direct quota API — approximated">PROXY</span></h3>
+        <div id="fuel-gemini-body"><p class="empty">no data</p></div>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-rnd" aria-labelledby="rnd-h" data-pane="rnd">
+    <div class="term-bar">
+      <h2 id="rnd-h">..//rnd: <span class="term-arg">{learnings}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div class="credits-section" id="rnd-tracks" style="margin-top:0; padding-top:0; border-top:none;">
+        <h3 class="credits-section-h">TRACKS</h3>
+        <div class="rnd-track-list" id="rnd-track-list"><p class="empty">loading&hellip;</p></div>
+      </div>
+
+      <div class="credits-section" id="rnd-lessons">
+        <h3 class="credits-section-h">LESSONS FEED</h3>
+        <div class="rnd-lesson-list" id="rnd-lesson-list"><p class="empty">no lessons yet</p></div>
+      </div>
+
+      <div class="credits-section" id="rnd-dispatcher">
+        <h3 class="credits-section-h">DISPATCHER</h3>
+        <div class="rnd-dispatcher-log" id="rnd-dispatcher-log"><p class="empty">no dispatch log yet</p></div>
+        <div class="credits-foot">
+          <span id="rnd-dispatcher-next">next fire: --</span>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-roster" aria-labelledby="roster-h" data-pane="roster">
+    <div class="term-bar">
+      <h2 id="roster-h">..//roster: <span class="term-arg">{studio}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <p class="hint">click an agent to expand their work sheet</p>
+      <div class="roster-grid" id="roster-grid"></div>
+      <div class="roster-detail" id="roster-detail" hidden></div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-pipeline" aria-labelledby="pipeline-h" data-pane="pipeline">
+    <div class="term-bar">
+      <h2 id="pipeline-h">..//pipeline: <span class="term-arg" id="pipeline-arg">{jobs}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div id="jobs-list" class="jobs-list">
+        <p class="empty">no jobs</p>
+      </div>
+      <h3 class="sub-h">DEADLINES</h3>
+      <div id="clients-list" class="clients-list">
+        <p class="empty">no clients</p>
+      </div>
+      <div id="applications-funnel" class="applications-funnel" hidden></div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-tasks" aria-labelledby="tasks-h" data-pane="tasks">
+    <div class="term-bar">
+      <h2 id="tasks-h">..//tasks: <span class="term-arg">{zoh}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <p class="hint">click a task to expand its steps &middot; check it off when done</p>
+      <div class="pane-toast" id="toast-tasks">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-tasks" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <div id="tasks-list" class="tasks-list">
+        <p class="empty">no tasks in tasks/zoh.md</p>
+      </div>
+      <h3 class="sub-h tasks-done-h" id="tasks-done-h" hidden>DONE</h3>
+      <div id="tasks-done" class="tasks-done"></div>
+      <form class="tasks-quickadd-row" id="tasks-quickadd-form">
+        <span class="tasks-quickadd-prompt" aria-hidden="true">&gt;</span>
+        <input type="text" id="tasks-quickadd-input" class="tasks-quickadd-input" placeholder="add a task&hellip; (supports !due:YYYY-MM-DDTHH:MM)" maxlength="300" autocomplete="off" aria-label="Add a task" />
+        <button type="submit" class="tasks-quickadd-send" id="tasks-quickadd-send">ADD</button>
+      </form>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-concierge" aria-labelledby="concierge-h" data-pane="concierge">
+    <div class="term-bar">
+      <h2 id="concierge-h">..//concierge: <span class="term-arg">{hermes}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body concierge-body">
+      <p class="concierge-note">SAME HERMES MIND &middot; SEPARATE SESSION FROM YOUR TELEGRAM THREAD</p>
+      <div class="pane-toast" id="toast-concierge">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-concierge" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <div class="concierge-transcript" id="concierge-transcript">
+        <p class="empty">no messages yet &mdash; say hello</p>
+      </div>
+      <form class="concierge-input-row" id="concierge-form">
+        <span class="concierge-prompt" aria-hidden="true">&gt;</span>
+        <input type="text" id="concierge-input" class="concierge-input" placeholder="message hermes&hellip;" maxlength="2000" autocomplete="off" aria-label="Message Hermes" />
+        <button type="submit" class="concierge-send" id="concierge-send">SEND</button>
+      </form>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-links" aria-labelledby="links-h" data-pane="links">
+    <div class="term-bar">
+      <h2 id="links-h">..//links: <span class="term-arg">{studio}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <a class="links-org" id="links-org" href="https://github.com/StudioHQ" target="_blank" rel="noopener noreferrer">&#8983; github.com/StudioHQ</a>
+      <div class="links-list" id="links-list">
+        <p class="empty">loading repos&hellip;</p>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-clients" aria-labelledby="clients-h" data-pane="clients">
+    <div class="term-bar">
+      <h2 id="clients-h">..//clients: <span class="term-arg">{portfolio}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <p class="hint">click a card for open items, recent jobs, and links</p>
+      <div class="clients-portfolio" id="clients-portfolio">
+        <p class="empty">no client files in vault</p>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-roadmap" aria-labelledby="roadmap-h" data-pane="roadmap">
+    <div class="term-bar">
+      <h2 id="roadmap-h">..//roadmap: <span class="term-arg">{priorities}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <p class="hint">arrows promote/demote &middot; click text to edit, Enter saves &middot; check off when shipped</p>
+      <div class="pane-toast" id="toast-roadmap">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-roadmap" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <div class="roadmap-board" id="roadmap-board">
+        <div class="roadmap-group" data-horizon="now">
+          <h3 class="sub-h">NOW</h3>
+          <div class="roadmap-items" id="roadmap-items-now"><p class="empty">nothing here</p></div>
+          <form class="roadmap-add-form" data-add-horizon="now">
+            <select class="roadmap-add-category" aria-label="Category">
+              <option value="client">client</option>
+              <option value="studio">studio</option>
+              <option value="idea">idea</option>
+              <option value="curiosity">curiosity</option>
+              <option value="learning">learning</option>
+              <option value="personal">personal</option>
+            </select>
+            <input type="text" class="roadmap-add-input" placeholder="add to NOW&hellip;" maxlength="300" autocomplete="off" aria-label="Add to NOW" />
+            <button type="submit" class="roadmap-add-send">ADD</button>
+          </form>
+        </div>
+        <div class="roadmap-group" data-horizon="next">
+          <h3 class="sub-h">NEXT</h3>
+          <div class="roadmap-items" id="roadmap-items-next"><p class="empty">nothing here</p></div>
+          <form class="roadmap-add-form" data-add-horizon="next">
+            <select class="roadmap-add-category" aria-label="Category">
+              <option value="client">client</option>
+              <option value="studio">studio</option>
+              <option value="idea">idea</option>
+              <option value="curiosity">curiosity</option>
+              <option value="learning">learning</option>
+              <option value="personal">personal</option>
+            </select>
+            <input type="text" class="roadmap-add-input" placeholder="add to NEXT&hellip;" maxlength="300" autocomplete="off" aria-label="Add to NEXT" />
+            <button type="submit" class="roadmap-add-send">ADD</button>
+          </form>
+        </div>
+        <div class="roadmap-group" data-horizon="later">
+          <h3 class="sub-h">LATER</h3>
+          <div class="roadmap-items" id="roadmap-items-later"><p class="empty">nothing here</p></div>
+          <form class="roadmap-add-form" data-add-horizon="later">
+            <select class="roadmap-add-category" aria-label="Category">
+              <option value="client">client</option>
+              <option value="studio">studio</option>
+              <option value="idea">idea</option>
+              <option value="curiosity">curiosity</option>
+              <option value="learning">learning</option>
+              <option value="personal">personal</option>
+            </select>
+            <input type="text" class="roadmap-add-input" placeholder="add to LATER&hellip;" maxlength="300" autocomplete="off" aria-label="Add to LATER" />
+            <button type="submit" class="roadmap-add-send">ADD</button>
+          </form>
+        </div>
+        <div class="roadmap-group" data-horizon="someday">
+          <h3 class="sub-h">SOMEDAY</h3>
+          <div class="roadmap-items" id="roadmap-items-someday"><p class="empty">nothing here</p></div>
+          <form class="roadmap-add-form" data-add-horizon="someday">
+            <select class="roadmap-add-category" aria-label="Category">
+              <option value="client">client</option>
+              <option value="studio">studio</option>
+              <option value="idea">idea</option>
+              <option value="curiosity">curiosity</option>
+              <option value="learning">learning</option>
+              <option value="personal">personal</option>
+            </select>
+            <input type="text" class="roadmap-add-input" placeholder="add to SOMEDAY&hellip;" maxlength="300" autocomplete="off" aria-label="Add to SOMEDAY" />
+            <button type="submit" class="roadmap-add-send">ADD</button>
+          </form>
+        </div>
+        <div class="roadmap-group roadmap-shipped-group" data-horizon="shipped">
+          <h3 class="sub-h">SHIPPED</h3>
+          <div class="roadmap-items roadmap-shipped-list" id="roadmap-items-shipped"><p class="empty">nothing shipped yet</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-library" aria-labelledby="library-h" data-pane="library">
+    <div class="term-bar">
+      <h2 id="library-h">..//library: <span class="term-arg">{the study}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body study-body">
+      <p class="hint">click a lesson to expand &middot; add a book, film, paper, link or person to the shelf &middot; ask the Librarian what it's read</p>
+      <div class="pane-toast" id="toast-library">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-library" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <div class="study-motes" aria-hidden="true"><span class="study-mote"></span><span class="study-mote"></span><span class="study-mote"></span></div>
+      <div class="study-layout">
+        <canvas class="study-magic-canvas" id="study-magic-canvas" aria-hidden="true"></canvas>
+        <div class="study-col study-col-lessons">
+          <h3 class="sub-h">LESSONS</h3>
+          <div class="library-lessons" id="library-lessons"><p class="empty">no lessons distilled yet</p></div>
+        </div>
+        <div class="study-col study-col-shelf">
+          <h3 class="sub-h">THE SHELF <span class="library-queue-count" id="shelf-count"></span></h3>
+          <div class="shelf-grid" id="shelf-grid"><p class="empty">the shelf is bare</p></div>
+          <form class="shelf-form" id="shelf-form">
+            <div class="shelf-form-row">
+              <select class="shelf-kind" id="shelf-kind" aria-label="Kind">
+                <option value="book">book</option>
+                <option value="movie">movie</option>
+                <option value="paper">paper</option>
+                <option value="link">link</option>
+                <option value="person">person</option>
+              </select>
+              <input type="text" class="shelf-title" id="shelf-title" placeholder="title" maxlength="160" autocomplete="off" aria-label="Title" />
+            </div>
+            <textarea class="shelf-note" id="shelf-note" placeholder="why it matters to the studio&hellip; (optional)" maxlength="1000" rows="2" aria-label="Note"></textarea>
+            <input type="url" class="shelf-url" id="shelf-url" placeholder="https:// (optional, for a link)" maxlength="500" autocomplete="off" aria-label="URL" />
+            <label class="shelf-file-label" for="shelf-file">attach a file — pdf / epub / txt / md, max 25MB (optional)</label>
+            <input type="file" class="shelf-file" id="shelf-file" accept=".pdf,.epub,.txt,.md" aria-label="File" />
+            <button type="submit" class="shelf-send" id="shelf-send">ADD TO SHELF</button>
+          </form>
+        </div>
+        <div class="study-col study-col-ask">
+          <h3 class="sub-h">ASK THE LIBRARIAN <span class="study-orrery-anchor" id="study-orrery-anchor" aria-hidden="true"></span></h3>
+          <div class="librarian-transcript" id="librarian-transcript">
+            <p class="empty">no questions yet &mdash; ask about anything on the shelf</p>
+          </div>
+          <form class="librarian-input-row" id="librarian-form">
+            <span class="librarian-prompt" aria-hidden="true">&gt;</span>
+            <input type="text" id="librarian-input" class="librarian-input" placeholder="ask the librarian&hellip;" maxlength="2000" autocomplete="off" aria-label="Ask the Librarian" />
+            <button type="submit" class="librarian-send" id="librarian-send">ASK</button>
+          </form>
+          <div class="study-archive">
+            <h3 class="sub-h">QUEUE <span class="library-queue-count" id="library-queue-count"></span></h3>
+            <div class="library-queue" id="library-queue"><p class="empty">queue empty</p></div>
+            <h3 class="sub-h">INBOX <span class="library-inbox-count" id="library-inbox-count"></span></h3>
+            <form class="library-inbox-form" id="library-inbox-form">
+              <input type="url" class="library-inbox-url" id="library-inbox-url" placeholder="https:// (optional)" maxlength="500" autocomplete="off" aria-label="Link URL" />
+              <textarea class="library-inbox-note" id="library-inbox-note" placeholder="a link + note, or a raw thought&hellip;" maxlength="4000" rows="3" aria-label="Note"></textarea>
+              <button type="submit" class="library-inbox-send" id="library-inbox-send">DROP</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-flow" aria-labelledby="flow-h" data-pane="flow">
+    <div class="term-bar">
+      <h2 id="flow-h">..//dataflow: <span class="term-arg">{who &lt;-&gt; what}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div class="flow-wrap">
+        <svg id="flow-svg" viewBox="0 0 800 480" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Studio data flow graph">
+          <g id="edges" class="edges">
+            <path id="edge-you-hermes" d="M 70 60 L 300 60" />
+            <path id="edge-hermes-claudecode" d="M 300 60 L 530 60" />
+            <path id="edge-hermes-hermesstate" d="M 300 60 L 300 190" />
+            <path id="edge-claudecode-vault" d="M 530 60 L 530 190" />
+            <path id="edge-claudecode-bzsite" d="M 530 60 L 430 400" />
+            <path id="edge-claudecode-rocasite" d="M 530 60 L 630 400" />
+            <path id="edge-vault-github" d="M 530 190 L 700 300" />
+            <path id="edge-bzsite-github" d="M 430 400 L 700 300" />
+            <path id="edge-rocasite-github" d="M 630 400 L 700 300" />
+            <path id="edge-github-pc" d="M 700 300 L 110 400" />
+            <path id="edge-you-pc" d="M 70 60 L 110 400" />
+          </g>
+          <g id="pulses" class="pulses"></g>
+          <g id="nodes" class="nodes">
+            <g class="node kind-agent" data-node="you" transform="translate(70,60)"><circle r="22"/><text><tspan x="0" y="-3" class="glyph">&#9737;</tspan><tspan x="0" y="10">YOU</tspan></text></g>
+            <g class="node kind-agent" data-node="hermes" transform="translate(300,60)"><circle r="24"/><text><tspan x="0" y="-3" class="glyph">&#9670;</tspan><tspan x="0" y="10">HERMES</tspan></text></g>
+            <g class="node kind-agent" data-node="claudecode" transform="translate(530,60)"><circle r="24"/><text><tspan x="0" y="-8" class="glyph">&#9650;</tspan><tspan x="0" y="4">CLAUDE</tspan><tspan x="0" y="14">CODE</tspan></text></g>
+            <g class="node kind-infra" data-node="hermesstate" transform="translate(300,190)"><circle r="20"/><text><tspan x="0" y="-2" class="glyph">&#9640;</tspan><tspan x="0" y="9">STATE</tspan></text></g>
+            <g class="node kind-infra" data-node="vault" transform="translate(530,190)"><circle r="22"/><text><tspan x="0" y="-3" class="glyph">&#9636;</tspan><tspan x="0" y="10">VAULT</tspan></text></g>
+            <g class="node kind-ext" data-node="github" transform="translate(700,300)"><circle r="22"/><text><tspan x="0" y="-3" class="glyph">&#8983;</tspan><tspan x="0" y="10">GITHUB</tspan></text></g>
+            <g class="node kind-repo" data-node="bzsite" transform="translate(430,400)"><circle r="20"/><text><tspan x="0" y="-2" class="glyph">&#9651;</tspan><tspan x="0" y="9">BZ&#8209;SITE</tspan></text></g>
+            <g class="node kind-repo" data-node="rocasite" transform="translate(630,400)"><circle r="20"/><text><tspan x="0" y="-2" class="glyph">&#9651;</tspan><tspan x="0" y="9">ROCA&#8209;SITE</tspan></text></g>
+            <g class="node kind-ext" data-node="pc" transform="translate(110,400)"><circle r="20"/><text><tspan x="0" y="-2" class="glyph">&#9707;</tspan><tspan x="0" y="9">PC</tspan></text></g>
+          </g>
+        </svg>
+      </div>
+      <div id="flow-legend" class="legend"></div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-review" aria-labelledby="review-h" data-pane="review">
+    <div class="term-bar">
+      <h2 id="review-h">..//review: <span class="term-arg">{your eyes}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <p class="hint">click a card to inspect &middot; approve, send back for rework, or comment</p>
+      <div class="pane-toast" id="toast-review">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-review" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <div class="review-pending" id="review-pending">
+        <p class="empty">nothing waiting on your eyes</p>
+      </div>
+      <h3 class="sub-h">HISTORY</h3>
+      <div class="review-history" id="review-history">
+        <p class="empty">no verdicts yet</p>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-commons" aria-labelledby="commons-h" data-pane="commons">
+    <div class="term-bar">
+      <h2 id="commons-h">..//commons: <span class="term-arg">{the ensemble}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div class="commons-updates" id="commons-updates">
+        <p class="empty">no department updates yet</p>
+      </div>
+      <div class="commons-toolbar">
+        <label class="commons-archive-label" for="commons-archive">JAM</label>
+        <select class="commons-archive" id="commons-archive"></select>
+        <span class="commons-new-badge" id="commons-new-badge" hidden>&#9679; NEW</span>
+      </div>
+      <div class="commons-transcript" id="commons-transcript">
+        <p class="empty">no jams yet &mdash; the first one lands at 14:00 or 00:00 IST</p>
+      </div>
+      <div class="pane-toast" id="toast-commons">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-commons" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <form class="commons-topic-form" id="commons-topic-form">
+        <label class="commons-topic-label" for="commons-topic-input">GIVE THEM SOMETHING TO THINK ABOUT</label>
+        <p class="commons-topic-next" id="commons-topic-next"></p>
+        <div class="commons-topic-row">
+          <input type="text" id="commons-topic-input" class="commons-topic-input" placeholder="a question or thought for the next jam&hellip;" maxlength="300" autocomplete="off" aria-label="Topic for the next jam" />
+          <button type="submit" class="commons-topic-send" id="commons-topic-send">QUEUE</button>
+        </div>
+      </form>
+      <p class="commons-footnote">an ensemble performed by the studio mind &mdash; jams at 14:00 and 00:00 IST</p>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-quests" aria-labelledby="quests-h" data-pane="quests">
+    <div class="term-bar">
+      <h2 id="quests-h">..//quests: <span class="term-arg">{personal}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div id="quests-list" class="jobs-list">
+        <p class="empty">no quests in ~/personal-brain/quests</p>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-pursuits" aria-labelledby="pursuits-h" data-pane="pursuits">
+    <div class="term-bar">
+      <h2 id="pursuits-h">..//pursuits: <span class="term-arg">{exhibitions, calls, leads}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <div id="pursuits-list" class="pursuits-list">
+        <p class="empty">no pursuits in ~/personal-brain/pursuits</p>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-assets" aria-labelledby="assets-h" data-pane="assets">
+    <div class="term-bar">
+      <h2 id="assets-h">..//assets: <span class="term-arg">{freshness}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body">
+      <p class="hint">portfolio, linkedin, resume, cover-letter master — amber past 7 days, red past 14</p>
+      <div class="pane-toast" id="toast-assets">
+        <span class="pane-toast-text"></span>
+        <button type="button" class="pane-toast-close" data-toast-close="toast-assets" aria-label="Dismiss">&#10005;</button>
+      </div>
+      <div id="assets-list" class="assets-list">
+        <p class="empty">no assets/artifacts.md in vault</p>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-canvas" aria-labelledby="canvas-h" data-pane="canvas">
+    <div class="term-bar">
+      <h2 id="canvas-h">..//canvas: <span class="term-arg">{the production floor}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body canvas-body" id="canvas-body">
+      <div class="canvas-toolbar" id="canvas-toolbar">
+        <select class="canvas-flow-select" id="canvas-flow-select" aria-label="Select flow"></select>
+        <button type="button" class="canvas-btn" id="canvas-new-flow-btn" title="New flow">+ FLOW</button>
+        <span class="canvas-altitude" id="canvas-altitude">MID</span>
+        <span class="canvas-search-wrap">
+          <input type="text" class="canvas-search-input" id="canvas-search-input" placeholder="/ search node or flow&hellip;" hidden autocomplete="off" />
+        </span>
+        <span class="canvas-hint">wheel zoom &middot; space-drag pan &middot; F frame &middot; 1-9 viewpoints &middot; / search &middot; dbl-click add node</span>
+      </div>
+      <div class="canvas-viewport" id="canvas-viewport">
+        <div class="canvas-grid-floor" id="canvas-grid-floor" aria-hidden="true"></div>
+        <div class="canvas-world" id="canvas-world">
+          <svg class="canvas-edges" id="canvas-edges"></svg>
+          <div class="canvas-nodes" id="canvas-nodes"></div>
+        </div>
+        <!-- screen-space, NOT a child of #canvas-world: the constellation's
+             giant condensed-caps flow names must stay legible regardless of
+             zoom, so they're positioned via worldToScreen() math instead of
+             riding the world transform's scale (see canvas.js's module
+             comment on renderConstellation). -->
+        <div class="canvas-clusters" id="canvas-clusters"></div>
+        <div class="canvas-empty" id="canvas-empty" hidden>
+          <p>no flows yet &mdash; press <b>+ FLOW</b> or double-click the floor</p>
+        </div>
+      </div>
+      <div class="canvas-minimap" id="canvas-minimap">
+        <div class="canvas-minimap-dots" id="canvas-minimap-dots"></div>
+        <div class="canvas-minimap-view" id="canvas-minimap-view"></div>
+      </div>
+      <div class="canvas-palette" id="canvas-palette" hidden></div>
+      <div class="canvas-inspector" id="canvas-inspector" hidden></div>
+      <div class="canvas-now-dock" id="canvas-now-dock" aria-live="polite"></div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+  <section class="term module module-bridge" aria-labelledby="bridge-h" data-pane="bridge">
+    <div class="term-bar">
+      <h2 id="bridge-h">..//bridge: <span class="term-arg">{light-a/v}</span><span class="cursor" aria-hidden="true"></span></h2>
+      <div class="term-controls">
+        <button type="button" class="win-btn pin-btn" data-action="pin" aria-label="Pin pane" title="Pin — stays visible across loadouts" aria-pressed="false"><i class="pin-dot" aria-hidden="true"></i></button>
+        <button type="button" class="win-btn" data-action="collapse" aria-label="Collapse pane" title="Collapse">&#8722;</button>
+        <button type="button" class="win-btn" data-action="fullscreen" aria-label="Fullscreen pane" title="Fullscreen">&#9633;</button>
+        <button type="button" class="win-btn" data-action="hide" aria-label="Hide pane" title="Hide">&#10005;</button>
+      </div>
+    </div>
+    <div class="term-body bridge-body" id="bridge-body">
+      <div class="bridge-viewport" id="bridge-viewport">
+        <canvas id="bridge-canvas"></canvas>
+        <div class="bridge-viewbar" id="bridge-viewbar">
+          <div class="bridge-view-btns" id="bridge-view-btns">
+            <button type="button" class="canvas-btn" data-view="FRONT">FRONT</button>
+            <button type="button" class="canvas-btn" data-view="BACK">BACK</button>
+            <button type="button" class="canvas-btn" data-view="SIDE-L">SIDE-L</button>
+            <button type="button" class="canvas-btn" data-view="SIDE-R">SIDE-R</button>
+            <button type="button" class="canvas-btn" data-view="TOP">TOP</button>
+            <button type="button" class="canvas-btn active" data-view="PERSP">PERSP</button>
+          </div>
+          <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-overlay-toggle" checked> OVERLAY</label>
+        </div>
+        <svg class="bridge-overlay-svg" id="bridge-overlay-svg" hidden></svg>
+        <div class="bridge-tooltip" id="bridge-tooltip" hidden></div>
+        <div class="bridge-calibrate" id="bridge-calibrate" hidden>
+          <video class="bridge-calibrate-video" id="bridge-calibrate-video" autoplay muted playsinline></video>
+          <svg class="bridge-calibrate-svg" id="bridge-calibrate-svg"></svg>
+          <div class="bridge-calibrate-controls">
+            <span class="bridge-field">drag the 4 corners onto the reference elevation's edges in the captured window</span>
+            <button type="button" class="canvas-btn" id="bridge-calibrate-done-btn">DONE</button>
+            <button type="button" class="canvas-btn" id="bridge-calibrate-cancel-btn">CANCEL</button>
+          </div>
+        </div>
+        <div class="bridge-patchmap" id="bridge-patchmap" hidden>
+          <div class="bridge-patchmap-head">DMX PATCH MAP &middot; port 9301 &middot; fixture id = row order below<button type="button" class="canvas-btn" id="bridge-map-close">CLOSE</button></div>
+          <pre class="bridge-patchmap-body" id="bridge-patchmap-body"></pre>
+          <div class="bridge-patchmap-head">WORKFLOW &middot; export &rarr; AE &rarr; TD/MadMapper &rarr; DMX-IN/PIXEL-MAP</div>
+          <pre class="bridge-patchmap-body" id="bridge-workflow-body"></pre>
+        </div>
+        <div class="bridge-registration" id="bridge-registration" hidden>
+          <div class="bridge-patchmap-head">SIMPLELED REGISTRATION &middot; bridge_lines.svg 2195&times;203 &middot; 44 paths<button type="button" class="canvas-btn" id="bridge-registration-close">CLOSE</button></div>
+          <div class="bridge-registration-body">
+            <svg class="bridge-registration-svg" id="bridge-registration-svg" viewBox="0 0 2195 203" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="bridge-registration-table" id="bridge-registration-table"></div>
+          </div>
+          <datalist id="bridge-registration-runkeys"></datalist>
+          <div class="bridge-row">
+            <button type="button" class="canvas-btn" id="bridge-registration-save-btn">SAVE MAPPING</button>
+            <button type="button" class="canvas-btn" id="bridge-registration-reset-btn">RESET TO AUTO-MATCH</button>
+            <div class="bridge-field" id="bridge-registration-note"></div>
+          </div>
+        </div>
+        <p class="bridge-degraded" id="bridge-degraded" hidden>Bridge visualiser assets missing — vendored Three.js failed to load from ./vendor/.</p>
+      </div>
+      <div class="bridge-panel" id="bridge-panel">
+        <div class="bridge-section">
+          <div class="bridge-section-label">FIXTURE GROUPS</div>
+          <div class="bridge-groups" id="bridge-groups"></div>
+          <div class="bridge-row">
+            <div class="bridge-status" id="bridge-total-readout">&mdash;</div>
+            <button type="button" class="canvas-btn" id="bridge-reset-btn">RESET ALL</button>
+          </div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">GLOBAL COLOR</div>
+          <div class="bridge-palette" id="bridge-palette"></div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">GLOBAL ANIMATION <span class="bridge-field">(overrides per-group)</span></div>
+          <div class="bridge-presets" id="bridge-presets">
+            <button type="button" class="canvas-btn active" data-anim="inherit">PER-GROUP</button>
+            <button type="button" class="canvas-btn" data-anim="none">STOP</button>
+            <button type="button" class="canvas-btn" data-anim="wave">WAVE</button>
+            <button type="button" class="canvas-btn" data-anim="chase">CHASE</button>
+            <button type="button" class="canvas-btn" data-anim="pulse">PULSE</button>
+            <button type="button" class="canvas-btn" data-anim="rainbow">RAINBOW</button>
+            <button type="button" class="canvas-btn" data-anim="lattice">LATTICE</button>
+          </div>
+          <div class="bridge-field" id="bridge-reduced-motion-note" hidden>prefers-reduced-motion: animations disabled, static lit state</div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">RENDER QUALITY</div>
+          <div class="bridge-row">
+            <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-bloom-toggle" checked> BLOOM</label>
+          </div>
+          <div class="bridge-row">
+            <span class="bridge-field">EXPOSURE</span>
+            <input type="range" id="bridge-exposure-range" min="0.5" max="1.8" step="0.05" value="1.15">
+            <span class="bridge-field" id="bridge-exposure-label">1.15</span>
+          </div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">SCENES <span class="bridge-field">(save/recall full state)</span></div>
+          <div class="bridge-scenes-list" id="bridge-scenes-list"></div>
+          <div class="bridge-row">
+            <input type="text" class="bridge-scene-name-input" id="bridge-scene-name-input" placeholder="scene name" maxlength="40">
+            <button type="button" class="canvas-btn" id="bridge-scene-save-btn">SAVE</button>
+          </div>
+          <div class="bridge-field" id="bridge-scene-note" hidden></div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">HANGER RIG <span class="bridge-field">(per-rod addressing)</span></div>
+          <div class="bridge-hanger-mode">
+            <button type="button" class="canvas-btn active" id="bridge-hanger-mode-group">GROUP COLOR</button>
+            <button type="button" class="canvas-btn" id="bridge-hanger-mode-perrod">PER-ROD</button>
+          </div>
+          <div class="bridge-hanger-row">
+            <select id="bridge-hanger-plane" title="plane">
+              <option value="BOTH">L+R</option>
+              <option value="L">L</option>
+              <option value="R">R</option>
+            </select>
+            <select id="bridge-hanger-rod" title="rod"></select>
+          </div>
+          <div class="bridge-hanger-row">
+            <label class="bridge-hanger-color-label">A <input type="color" id="bridge-hanger-color-a" value="#ff4d4d"></label>
+            <label class="bridge-hanger-color-label">B <input type="color" id="bridge-hanger-color-b" value="#6dff3c"></label>
+            <button type="button" class="canvas-btn" id="bridge-hanger-assign-btn">ASSIGN ROD (A)</button>
+          </div>
+          <div class="bridge-hanger-row">
+            <button type="button" class="canvas-btn" id="bridge-hanger-alternate-btn">ALTERNATE FAMILIES</button>
+            <button type="button" class="canvas-btn" id="bridge-hanger-gradient-btn">GRADIENT 01&rarr;21</button>
+          </div>
+          <div class="bridge-hanger-row">
+            <button type="button" class="canvas-btn" id="bridge-hanger-symmetric-btn">SYMMETRIC FROM CENTER</button>
+            <button type="button" class="canvas-btn" id="bridge-hanger-clear-btn">CLEAR</button>
+          </div>
+          <div class="bridge-field" id="bridge-hanger-rig-note">GROUP COLOR (see FIXTURE GROUPS above)</div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">EXPORT / STREAM</div>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-export-btn">EXPORT UV MAP</button>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-stream-btn">START SPOUT STREAM</button>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">EXPORT 3D MODEL <span class="bridge-field">(GLB / OBJ+MTL / FBX, named hierarchy)</span></div>
+          <div class="bridge-row">
+            <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-export3d-env"> INCLUDE ENVIRONMENT</label>
+            <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-export3d-fixtures" checked> INCLUDE FIXTURE POINTS</label>
+          </div>
+          <div class="bridge-hanger-row">
+            <button type="button" class="canvas-btn" id="bridge-export3d-glb-btn">GLB</button>
+            <button type="button" class="canvas-btn" id="bridge-export3d-obj-btn">OBJ</button>
+            <button type="button" class="canvas-btn" id="bridge-export3d-fbx-btn">FBX</button>
+          </div>
+          <div class="bridge-field" id="bridge-export3d-note"></div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">MASK EXPORT PACK <span class="bridge-field">(select a view above)</span></div>
+          <div class="bridge-hanger-row">
+            <select id="bridge-export-res" title="resolution">
+              <option value="1920">1920px</option>
+              <option value="3840">3840px</option>
+            </select>
+            <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-export-night-bg"> NIGHT BG</label>
+          </div>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-export-pack-btn" disabled>EXPORT MASK PACK</button>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-patch-csv-btn">EXPORT PATCH CSV</button>
+          <div class="bridge-field" id="bridge-export-pack-note">pick FRONT/BACK/SIDE-L/SIDE-R/TOP to enable</div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">INPUT MODE</div>
+          <div class="bridge-input-mode" id="bridge-input-mode">
+            <button type="button" class="canvas-btn active" data-mode="internal">INTERNAL</button>
+            <button type="button" class="canvas-btn" data-mode="dmx-in">RIG MIRROR</button>
+            <button type="button" class="canvas-btn" data-mode="pixel-map">PIXEL-MAP</button>
+            <button type="button" class="canvas-btn" data-mode="media">MEDIA</button>
+          </div>
+          <div id="bridge-dmxin-panel" hidden>
+            <div class="bridge-field">mirrors the same Art-Net/sACN Madrix/SimpleLED already sends the physical bridge &mdash; see MADRIX PATCH GUIDE in HELP/MAP</div>
+            <div class="bridge-status" id="bridge-dmxin-status">&mdash;</div>
+            <div class="bridge-section-label">UNIVERSE MAPPING <span class="bridge-field">(group &rarr; universe/channel)</span></div>
+            <div class="bridge-umap-list" id="bridge-universemap-body"></div>
+            <div class="bridge-row">
+              <button type="button" class="canvas-btn" id="bridge-universemap-reset-btn">RESET TO DEFAULT</button>
+            </div>
+            <div class="bridge-field" id="bridge-universemap-note" hidden></div>
+          </div>
+          <div id="bridge-pixelmap-panel" hidden>
+            <select id="bridge-pixelmap-view" title="reference elevation">
+              <option value="FRONT">FRONT</option>
+              <option value="BACK">BACK</option>
+              <option value="SIDE-L">SIDE-L</option>
+              <option value="SIDE-R">SIDE-R</option>
+              <option value="TOP">TOP</option>
+            </select>
+            <button type="button" class="canvas-btn bridge-full-btn" id="bridge-pixelmap-capture-btn">CAPTURE SCREEN</button>
+            <button type="button" class="canvas-btn bridge-full-btn" id="bridge-pixelmap-calibrate-btn" disabled>CALIBRATE CORNERS</button>
+            <button type="button" class="canvas-btn bridge-full-btn" id="bridge-pixelmap-testpattern-btn">TEST PATTERN</button>
+            <div class="bridge-field" id="bridge-pixelmap-status">not capturing</div>
+            <div class="bridge-field" id="bridge-pixelmap-selfcheck"></div>
+          </div>
+          <div id="bridge-media-panel" hidden>
+            <div class="bridge-field">upload a photo/video, pick a mapping profile &mdash; sampled per-fixture at its registered canvas position, every frame</div>
+            <input type="file" id="bridge-media-file" accept="image/*,video/*" hidden>
+            <button type="button" class="canvas-btn bridge-full-btn" id="bridge-media-upload-btn">UPLOAD MEDIA</button>
+            <div class="bridge-media-shelf" id="bridge-media-shelf"></div>
+            <select id="bridge-media-profile" title="mapping profile">
+              <option value="simpleled">SIMPLELED CANVAS (2195&times;203)</option>
+              <option value="view:FRONT">ELEVATION: FRONT</option>
+              <option value="view:BACK">ELEVATION: BACK</option>
+              <option value="view:SIDE-L">ELEVATION: SIDE-L</option>
+              <option value="view:SIDE-R">ELEVATION: SIDE-R</option>
+              <option value="view:TOP">ELEVATION: TOP</option>
+            </select>
+            <select id="bridge-media-fit" title="fit mode">
+              <option value="fill">FILL (crop to cover)</option>
+              <option value="fit">FIT (letterbox)</option>
+              <option value="stretch">STRETCH</option>
+            </select>
+            <button type="button" class="bridge-media-hint" id="bridge-media-hint" hidden></button>
+            <div class="bridge-media-monitor">
+              <button type="button" class="bridge-monitor-toggle" id="bridge-media-monitor-toggle" aria-expanded="true">SOURCE MONITOR <span id="bridge-media-monitor-chevron">&#9662;</span></button>
+              <div class="bridge-media-monitor-body" id="bridge-media-monitor-body">
+                <div class="bridge-media-monitor-stage" id="bridge-media-monitor-stage">
+                  <div class="bridge-media-monitor-empty" id="bridge-media-monitor-empty">no media selected</div>
+                  <div class="bridge-media-monitor-rect" id="bridge-media-monitor-rect" hidden></div>
+                </div>
+                <div class="bridge-field" id="bridge-media-monitor-caption"></div>
+              </div>
+            </div>
+            <div class="bridge-row">
+              <button type="button" class="canvas-btn" id="bridge-media-play-btn">PAUSE</button>
+              <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-media-loop" checked> LOOP</label>
+            </div>
+            <div class="bridge-hanger-row">
+              <span class="bridge-field">SPEED</span>
+              <input type="range" id="bridge-media-speed" min="0.25" max="3" step="0.05" value="1">
+              <span class="bridge-field" id="bridge-media-speed-label">1.00x</span>
+            </div>
+            <div class="bridge-hanger-row">
+              <span class="bridge-field">BRIGHTNESS</span>
+              <input type="range" id="bridge-media-brightness" min="0" max="2" step="0.05" value="1">
+            </div>
+            <div class="bridge-hanger-row">
+              <span class="bridge-field">GAMMA</span>
+              <input type="range" id="bridge-media-gamma" min="0.3" max="3" step="0.05" value="1">
+            </div>
+            <div class="bridge-hanger-row">
+              <span class="bridge-field">SATURATION</span>
+              <input type="range" id="bridge-media-saturation" min="0" max="2" step="0.05" value="1">
+            </div>
+            <div class="bridge-field" id="bridge-media-status">no media selected</div>
+          </div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">SIMPLELED MAPPING <span class="bridge-field">(bridge_lines.svg registration)</span></div>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-simpleled-registration-btn">REGISTRATION OVERLAY</button>
+          <div class="bridge-field" id="bridge-simpleled-note"></div>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">VIDEO OUT <span class="bridge-field">(SimpleLED deliverable)</span></div>
+          <div class="bridge-hanger-row">
+            <span class="bridge-field">DURATION</span>
+            <input type="number" id="bridge-record-duration" min="1" max="120" value="10" step="1">
+            <span class="bridge-field">sec</span>
+            <select id="bridge-record-fps" title="fps">
+              <option value="30">30fps</option>
+              <option value="60">60fps</option>
+            </select>
+          </div>
+          <div class="bridge-row">
+            <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-record-oneloop"> ONE MEDIA LOOP</label>
+            <label class="bridge-overlay-toggle"><input type="checkbox" id="bridge-record-blackbg" checked> BLACK BG</label>
+          </div>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-record-btn">RECORD MAP VIDEO</button>
+          <div class="bridge-field" id="bridge-record-status">idle</div>
+          <a class="bridge-field bridge-record-download" id="bridge-record-download" href="#" download hidden>&#8595; DOWNLOAD MP4</a>
+        </div>
+        <div class="bridge-section">
+          <div class="bridge-section-label">DMX SERVER</div>
+          <div class="bridge-status" id="bridge-status">&mdash;</div>
+          <button type="button" class="canvas-btn bridge-full-btn" id="bridge-map-btn">HELP / MAP</button>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" aria-hidden="true"></div>
+  </section>
+
+</main>
+
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox-inner">
+    <button type="button" class="lightbox-close" id="lightbox-close">&#10005; CLOSE</button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="review screenshot" />
+    <div class="lightbox-meta">
+      <span class="lb-project" id="lightbox-project"></span>
+      <span class="lb-time" id="lightbox-time"></span>
+      <a class="lb-url" id="lightbox-url" href="#" target="_blank" rel="noopener noreferrer" hidden>staging &#8594;</a>
+    </div>
+    <p class="lightbox-note" id="lightbox-note"></p>
+  </div>
+</div>
+
+<div class="lightbox" id="canvas-review-overlay" hidden>
+  <div class="lightbox-inner canvas-review-overlay-inner">
+    <button type="button" class="lightbox-close" id="canvas-review-overlay-close">&#10005; CLOSE</button>
+    <div id="canvas-review-overlay-body"></div>
+  </div>
+</div>
+
+<div class="marquee" id="marquee">
+  <div class="marquee-track" id="marquee-track">
+    <span class="marquee-item">loading feed&hellip;</span>
+  </div>
+</div>
+
+<div class="readout" id="readout">
+  <div class="readout-row"><span class="ro-label">CLOCK</span><span class="ro-val" id="ro-clock">&mdash;</span></div>
+  <div class="readout-row"><span class="ro-label">CONSOLE</span><span class="ro-val">v0.18.8</span></div>
+  <div class="readout-row"><span class="ro-label">NEAREST DUE</span><span class="ro-val" id="ro-due">&mdash;</span></div>
+  <div class="readout-row"><span class="ro-label">CURSOR</span><span class="ro-val" id="ro-cursor">x:&mdash; y:&mdash;</span></div>
+  <div class="readout-row"><span class="ro-label">FOCUS</span><span class="ro-val" id="ro-geom">&mdash;</span></div>
+  <div class="readout-row"><span class="ro-label">MODE</span><span class="ro-val" id="ro-mode-controls"></span></div>
+  <div class="readout-row"><span class="ro-label">SOUND</span><span class="ro-val" id="ro-sound-controls"></span></div>
+  <div class="readout-row"><span class="ro-label">NOTIFY</span><span class="ro-val" id="ro-notify-controls"></span></div>
+  <div class="readout-row"><span class="ro-label">LAYOUT</span><span class="ro-val" id="ro-layout-controls"></span></div>
+  <div class="readout-row"><span class="ro-label">SESSION</span><span class="ro-val" id="ro-session-controls"></span></div>
+  <div class="readout-row readout-credits"><span class="ro-credits" id="ro-credits" aria-hidden="true">&mdash;</span></div>
+</div>
+
+<footer class="footbar">
+  <span>StudioHQ frontend · historical records · local layout only</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+
+<script src="./app.js"></script>
+<script src="./canvas.js" defer></script>
+
+
+</body>
+</html>
