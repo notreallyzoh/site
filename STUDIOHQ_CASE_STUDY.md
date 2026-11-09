@@ -54,3 +54,12 @@ Do not claim Temporal usage, exactly-once processing, autonomous production depl
 ## Screenshot provenance
 
 `canvas.png` and `review.png` are crops of the actual frontend rendered locally at desktop size with reduced motion enabled. Synthetic API fixtures supply example jobs, flow nodes and review data. The review thumbnail is the canvas capture. No model provider, live client data, Telegram action or production service was used. Fixture statuses are illustrative, not measured execution results. Public source distribution is intentionally excluded.
+
+
+## Expanded console tour
+
+Full-frame UI captures now cover OPS, agenda/orchestration, agent roster, daily tasks, data-flow graph, GitHub/staging links, Hermes concierge, library and human review. All values and conversation content in these images are synthetic and visibly labelled. The concierge was exercised against a mocked API response, not a live model. No Telegram message was sent.
+
+Additional source inspected: `lib/tasks.js` (Markdown checklist writes), `lib/links.js` (Git remotes and staging URL map), `bin/librarian-session.js` (reference digestion, lesson cards and skill-amendment review proposals). The learning loop updates knowledge artifacts and proposed instructions; it does not train model weights or establish measured improvement. Failed library steps are logged with best-effort continuation, so exit success alone is not evidence every material item was processed.
+
+Owner-supplied deployment history: Obsidian digital brain, role-specific agents, daily routines, Telegram standup/end-of-day messages, and DuckDNS/Caddy access that reduced manual coordination between requirements and delivered work. Preserve these as qualitative experience, not quantified efficiency claims. The links pane is not a GitHub Actions deployment monitor.
