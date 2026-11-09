@@ -50,6 +50,7 @@ export const EXPERIENCES = [
 ];
 
 export const CATEGORIES = [
+  { id: 'ai-workflows', label: 'Custom AI Workflows', icon: '⌘' },
   { id: 'websites', label: 'Websites & Commerce', icon: '↗' },
   { id: 'installations', label: 'Installations', icon: '◈' },
   { id: 'vj', label: 'VJ / Live', icon: '◉' },
@@ -58,6 +59,23 @@ export const CATEGORIES = [
 ];
 
 export const PROJECTS = [
+  {
+    id: 'studiohq', title: 'StudioHQ — A console for agent-assisted work', category: 'ai-workflows', year: '2026',
+    showcase: true, showcaseLabel: 'Custom AI Workflows',
+    desc: 'My studio workspace for agent activity, media pipelines and human review. Previously self-hosted with always-on agents; paused to reduce running costs.',
+    tech: ['Node.js', 'JavaScript', 'JSON / Markdown', 'Git', 'FFmpeg', 'Agent CLI integration'],
+    media: [
+      { type: 'image', src: '/showcases/studiohq/canvas.png', caption: 'Actual StudioHQ canvas with synthetic sample data — a workflow view, not a live agent run' },
+      { type: 'image', src: '/showcases/studiohq/review.png', caption: 'Actual human-review interface with a synthetic card and sample screenshot' },
+    ],
+    longDesc: [
+      { heading: 'My contribution', text: 'I developed StudioHQ as my own studio tooling, combining product direction, interface design and AI-assisted implementation. It brings agent activity, tasks, artifacts and review decisions into one place.' },
+      { heading: 'The implementation', text: 'A Node.js server assembles state from a Git-backed workspace. The vanilla JavaScript UI includes movable panes and a node-based canvas. FFmpeg handles media operations; build nodes queue requests for a separate agent orchestrator.' },
+      { heading: 'Review and handoff', text: 'Review cards support approve, rework and comment actions, with decisions stored in the vault. In a flow with a review gate before delivery, handoff waits for that upstream stage to complete. This is a configured workflow, not a universal policy engine.' },
+      { heading: 'Deployment and documentation', text: 'I previously ran the system on a server with agents operating around the clock, then stopped it to reduce costs. The case study covers implemented features, architecture and tradeoffs. Screenshots use synthetic data; live integrations were not restarted for this documentation.' },
+    ],
+    references: [{ label: 'Read the implementation case study ↗', url: '/showcases/studiohq/index.html' }],
+  },
   ...[
     { id: 'alifa', title: 'ALIFA — An editorial storefront', domain: 'alifa.ae', kind: 'Fashion · E-commerce', desc: 'A restrained, editorial storefront for a Dubai modestwear label. Limited collections, product discovery and brand storytelling share one visual language.', features: ['Collection browsing', 'Product detail pages', 'Editorial commerce'], story: 'A collection-led shopping experience that gives the clothing room to speak. The site connects campaign imagery, a browsable collection and individual product pages with the practical information shoppers need.' },
     { id: 'bzfitness', title: 'BZ Fitness — From equipment to enquiry', domain: 'bzfitness.com', kind: 'B2B · Catalogue & quotes', desc: 'A commercial gym equipment catalogue with quote-building and gym-planning journeys, helping buyers move from individual machines to a complete equipment list.', features: ['Equipment catalogue', 'Quote building', 'Gym planning'], story: 'A B2B buying journey built around the way gyms source equipment. Visitors can explore machine series and ready-made packages, assemble a quote list or start with a gym-planning enquiry.' },
