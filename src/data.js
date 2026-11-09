@@ -63,7 +63,7 @@ export const PROJECTS = [
     id: 'studiohq', title: 'StudioHQ — A console for agent-assisted work', category: 'ai-workflows', year: '2026',
     showcase: true, showcaseLabel: 'Custom AI Workflows',
     galleryNavigation: true,
-    links: { caseStudy: '/showcases/studiohq/index.html#console' },
+    links: { caseStudy: '/showcases/studiohq/index.html#console', archive: '/showcases/studiohq/archive/' },
     desc: 'My studio workspace for agent activity, media pipelines and human review. Previously self-hosted with always-on agents; paused to reduce running costs.',
     tech: ['Node.js', 'JavaScript', 'JSON / Markdown', 'Git', 'FFmpeg', 'Agent CLI integration'],
     media: [

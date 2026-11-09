@@ -1,0 +1,262 @@
+{
+  "snapshot": "0d8966ef1b40feac67d993e7b27982d4de05ff82",
+  "reviews": [
+    {
+      "id": "2026-07-25-hq-console-v0.10-loadouts",
+      "project": "hq-app",
+      "title": "v0.10 LOADOUTS — utility-wear layout system",
+      "date": "2026-07-25T01:13:40+05:30",
+      "status": "approved",
+      "summary": "Five workspace loadouts, pinned panes and snap tiling. The review asked whether nine panes remained readable and whether the utility details felt useful.",
+      "source": "review/2026-07-25-hq-console-v0.10-loadouts.json",
+      "events": [
+        {
+          "at": "2026-07-24T19:46:43.955Z",
+          "action": "approved",
+          "note": "Everything Looks good! Great Progress"
+        }
+      ],
+      "image": "loadouts.webp"
+    },
+    {
+      "id": "2026-07-25-hq-console-v0.14-tasks-pane",
+      "project": "hq-app",
+      "title": "v0.14 ..//tasks: {zoh} — the CEO task pane",
+      "date": "2026-07-25T03:49:02+05:30",
+      "status": "approved",
+      "summary": "A task pane backed by Markdown checkboxes, expandable steps, due markers and quick-add. The original review screenshot included a deliberately overdue demo task.",
+      "source": "review/2026-07-25-hq-console-v0.14-tasks-pane.json",
+      "events": [
+        {
+          "at": "2026-07-24T22:20:47.816Z",
+          "action": "approved",
+          "note": "Looks great, Approved"
+        }
+      ]
+    },
+    {
+      "id": "2026-07-28-hq-console-v019-production-floor",
+      "project": "hq-app",
+      "title": "HQ Console v0.19 — THE PRODUCTION FLOOR",
+      "date": "2026-07-28T18:51:54.074Z",
+      "status": "approved",
+      "summary": "A node canvas replaced the content pane. The first seed flow used an FFmpeg test clip, transcode, review and delivery stages.",
+      "source": "review/2026-07-28-hq-console-v019-production-floor.json",
+      "events": [
+        {
+          "at": "2026-07-29T12:03:54.779Z",
+          "action": "approved",
+          "note": "Ui looks good for now, need to slowly start adapting it to actual client work"
+        }
+      ]
+    },
+    {
+      "id": "2026-07-28-librarian",
+      "project": "hq-app",
+      "title": "HQ Console v0.17 — THE LIBRARIAN",
+      "date": "2026-07-28T21:46:00+05:30",
+      "status": "approved",
+      "summary": "A library pane with queued references, lesson cards and proposed skill amendments. The review led to a request for PDF uploads.",
+      "source": "review/2026-07-28-librarian.json",
+      "events": [
+        {
+          "at": "2026-07-28T17:43:59.159Z",
+          "action": "approved",
+          "note": "looks great. is there also a way to upload pdfs"
+        }
+      ]
+    },
+    {
+      "id": "2026-07-29-roca-v2-award",
+      "project": "roca-fuels",
+      "title": "V2 award-tier rebuild — Home narrative + design system",
+      "date": "2026-07-29T20:47:15+05:30",
+      "status": "approved",
+      "summary": "A five-scene homepage rebuild with a shared typography system, restrained orange accent, scroll-led quality-check narrative and lead form. The card records build and viewport checks; those historical checks have not been rerun here.",
+      "source": "review/2026-07-29-roca-v2-award.json",
+      "events": [
+        {
+          "at": "2026-07-29T15:19:08.806Z",
+          "action": "approved",
+          "note": "Looks good, live link for me to test"
+        }
+      ],
+      "image": "roca.webp"
+    },
+    {
+      "id": "2026-07-26-adaline-v21",
+      "project": "adaline-v2",
+      "title": "V2.1 Foundations — 9-item fix list from the expert review",
+      "date": "2026-07-26T02:18:40+05:30",
+      "status": "rework",
+      "summary": "A headline and page-copy revision followed by manual feedback about blinking components during scroll. The record includes a staged revision and a Git push permission blocker; it does not establish a completed handoff.",
+      "source": "review/2026-07-26-adaline-v21.json",
+      "events": [
+        {
+          "at": "2026-07-26T21:45:53.600Z",
+          "action": "rework",
+          "note": "I like these 2 — without the back-and-forth.\" **Option B — systems voice (closest to current tone)** \"One System. Every Launch.\" (accent: System) Subline: \"Design, technology, and production under one roof — so nothing gets lost in handoffs, and nothing ships slow.\" ,  \"Clean, conversion-focused design for startups who need to move now and grow later — no delays, no drama."
+        },
+        {
+          "at": "2026-07-27T07:42:43.000Z",
+          "action": "rework-applied",
+          "note": "Headline changes applied, build and screenshot checked, and a staging revision returned for review."
+        },
+        {
+          "at": "2026-07-28T15:10:52.932Z",
+          "action": "rework",
+          "note": "tried testing manually on browser. components are glitching and blinking while scrolling down. can you fix that please?"
+        }
+      ]
+    },
+    {
+      "id": "studio-reel-test-e0a932a8",
+      "project": "hq-app-canvas:studio-reel-test",
+      "title": "Studio reel test — trimmed ident",
+      "date": "2026-07-28T18:27:04.855Z",
+      "status": "approved",
+      "summary": "A real FFmpeg test-pattern clip passed through trim/transcode into a review gate. This was a pipeline test, not a finished client film.",
+      "source": "review/studio-reel-test-e0a932a8.json",
+      "events": [
+        {
+          "at": "2026-07-29T12:02:11.141Z",
+          "action": "approved",
+          "note": "I have to test it with real video later. Looks good a of now"
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "name": "Studio reel test",
+    "updatedAt": "2026-10-13T08:41:39.075Z",
+    "source": "flows/studio-reel-test.json",
+    "nodes": [
+      {
+        "id": "34c06b03",
+        "name": "BRIEF",
+        "kind": "brief",
+        "status": "idle",
+        "operation": null,
+        "progress": null,
+        "finishedAt": null
+      },
+      {
+        "id": "3bb939da",
+        "name": "Test clip (5s)",
+        "kind": "asset",
+        "status": "idle",
+        "operation": "generate-testsrc",
+        "progress": 100,
+        "finishedAt": "2026-07-29T12:02:48.092Z"
+      },
+      {
+        "id": "6c75326f",
+        "name": "Trim + 720p webm",
+        "kind": "ffmpeg",
+        "status": "idle",
+        "operation": "trim-transcode",
+        "progress": 100,
+        "finishedAt": "2026-07-28T18:48:39.013Z"
+      },
+      {
+        "id": "e0a932a8",
+        "name": "Client eye",
+        "kind": "review-gate",
+        "status": "idle",
+        "operation": null,
+        "progress": null,
+        "finishedAt": null
+      },
+      {
+        "id": "9dc04785",
+        "name": "Handoff",
+        "kind": "deliver",
+        "status": "idle",
+        "operation": null,
+        "progress": null,
+        "finishedAt": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "d7f05fe0",
+        "from": "34c06b03",
+        "to": "3bb939da"
+      },
+      {
+        "id": "9cdc857a",
+        "from": "3bb939da",
+        "to": "6c75326f"
+      },
+      {
+        "id": "3fbc7424",
+        "from": "6c75326f",
+        "to": "e0a932a8"
+      },
+      {
+        "id": "8d46f8f7",
+        "from": "e0a932a8",
+        "to": "9dc04785"
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "title": "BZ Fitness — DNS launch",
+      "done": true,
+      "due": "2026-07-26"
+    },
+    {
+      "title": "Restart Hermes Gateway",
+      "done": true,
+      "due": "2026-07-29"
+    },
+    {
+      "title": "Roca Fuels — locate DNS zone",
+      "done": false,
+      "due": "2026-07-26"
+    },
+    {
+      "title": "BZ Fitness — add Cloudflare site",
+      "done": false,
+      "due": "2026-07-29"
+    },
+    {
+      "title": "ALIFA — delivery brief and checklist",
+      "done": true,
+      "due": "2026-07-29"
+    }
+  ],
+  "conversation": [
+    {
+      "name": "Devon",
+      "text": "We find the real problem by shipping something and watching it fail, not by planning it away in advance."
+    },
+    {
+      "name": "Ara",
+      "text": "It's not smooth on the way in. It gets smooth on the way out."
+    },
+    {
+      "name": "Vex",
+      "text": "Right, so the one sentence isn't about speed at all, it's about where the friction sits."
+    }
+  ],
+  "lessons": [
+    {
+      "title": "Headless agents never wait",
+      "date": "2026-08-01",
+      "topic": "Dispatch protocol",
+      "source": "library/lessons/2026-08-01-headless-agents-never-wait.md",
+      "text": "A saved postmortem describes two builds stopping before verification while returning a successful exit code. The proposed correction was synchronous verification and checking for the job record and review card after a worker exits. A later note also warned about background delegation.",
+      "boundary": "This is a recorded failure and proposed operating rule, not a benchmark of recovery reliability."
+    },
+    {
+      "title": "Stop paying per-frame cost for things that never change",
+      "date": "2026-07-28",
+      "topic": "Creative 3D",
+      "source": "library/lessons/2026-07-28-stop-paying-per-frame-cost-for-things-that-never-change.md",
+      "text": "A saved research note proposes auditing static shadow updates, repeated material traversal and CPU-side particle updates. It also suggests shader prewarming. The Librarian proposed turning these observations into a reusable skill checklist.",
+      "boundary": "Derived from an external case study. Its reported performance gains are not StudioHQ results."
+    }
+  ]
+}
