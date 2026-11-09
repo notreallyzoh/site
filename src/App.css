@@ -183,3 +183,11 @@
 .hero__developer { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: .8rem; color: #d4d6cc; text-decoration: underline; text-underline-offset: 5px; }
 .hero__developer:hover { color: #fff; }
 .nav__developer { font-size: .85rem; }
+
+/* StudioHQ: expose every frame without a hidden horizontal strip. */
+.detail--gallery .detail__thumbs { display: grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); overflow: visible; }
+.detail--gallery .detail__thumb { justify-content: flex-start; white-space: normal; }
+.detail__gallery-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 64px 20px 16px; }
+.detail__gallery-nav button, .detail__gallery-nav a { min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 3px; color: var(--text-primary); }
+.detail__gallery-nav span { font-size: .9rem; }
+@media(max-width:600px){ .detail--gallery .detail__thumbs { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 12px; } .detail__gallery-nav { gap:8px; padding-left:12px; padding-right:12px; } .detail__gallery-nav span { order:-1; flex-basis:100%; } }

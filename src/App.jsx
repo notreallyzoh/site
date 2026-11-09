@@ -214,6 +214,7 @@ function ProjectCard({ p }) {
           <button ref={openerRef} className="work__read" onClick={() => setOpen(true)}>Explore project <Arrow /></button>
           {p.links?.preview && <a href={p.links.preview} target="_blank" rel="noopener noreferrer" className="work__preview-link mono" onClick={e => e.stopPropagation()}>Try the map ↗</a>}
           {p.links?.gallery && <a href={p.links.gallery} target="_blank" rel="noopener noreferrer" className="work__preview-link mono" onClick={e => e.stopPropagation()}>Identity & motion gallery ↗</a>}
+          {p.links?.caseStudy && <a href={p.links.caseStudy} className="work__preview-link mono" onClick={e => e.stopPropagation()}>Explore all {p.media.length} UI frames ↗</a>}
           {p.links?.live && <a href={p.links.live} target="_blank" rel="noopener noreferrer" className="mono work__link" onClick={e => e.stopPropagation()}>{p.domain ? 'Visit website ↗' : '→ Live Demo'}</a>}
         </div>
       </article>
@@ -221,12 +222,13 @@ function ProjectCard({ p }) {
       {/* Full-screen detail modal */}
       {open && createPortal((
         <div className="detail-overlay" onClick={close}>
-          <div className={`detail ${p.showcase ? 'detail--showcase' : ''} ${p.presentation === 'portrait' ? 'detail--portrait' : ''}`} role="dialog" aria-modal="true" aria-labelledby={`title-${p.id}`} onClick={e => e.stopPropagation()}>
+          <div className={`detail ${p.showcase ? 'detail--showcase' : ''} ${p.presentation === 'portrait' ? 'detail--portrait' : ''} ${p.galleryNavigation ? 'detail--gallery' : ''}`} role="dialog" aria-modal="true" aria-labelledby={`title-${p.id}`} onClick={e => e.stopPropagation()}>
             <button ref={closeRef} className="detail__close" aria-label="Close project" onClick={close}>✕</button>
             {p.highlightRole && <section className="detail__role-lead" aria-label="My contribution"><p className="section-label">MY ROLE · ZOHEB MAMOO</p><h2>{p.title}</h2><p>{p.role}</p></section>}
 
             {/* Media carousel */}
             <div className="detail__media">
+              {p.galleryNavigation && <div className="detail__gallery-nav"><button onClick={() => setMi(i => (i - 1 + p.media.length) % p.media.length)} aria-label="Previous UI frame">← Previous</button><span role="status" aria-live="polite">{mi + 1} / {p.media.length} · {m.label || 'UI frame'}</span><button onClick={() => setMi(i => (i + 1) % p.media.length)} aria-label="Next UI frame">Next →</button><a href={m.src} target="_blank" rel="noopener noreferrer">Full-size image ↗</a></div>}
               {p.media[mi]?.type === 'video'
                 ? <video key={p.media[mi].src} src={p.media[mi].src} poster={p.media[mi].poster} controls autoPlay={!reducedMotion()} muted loop playsInline preload="metadata" />
                 : <img src={p.media[mi]?.src} alt={p.media[mi]?.caption || p.title} />}
