@@ -10,3 +10,5 @@
 /* Keep the two disciplines aligned at every viewport width. */
 .hero-first{display:block}.hero-second{display:flex;align-items:baseline;gap:12px;margin-top:16px;font-size:.76em;max-width:none}.hero-plus{display:block;float:none;clear:none;margin:0;font-size:1em;line-height:1;flex-shrink:0}.hero-second>span:last-child{min-width:0}
 @media(min-width:1100px){.intro-copy{padding-top:145px}.hero-second{gap:22px;white-space:nowrap}.intro-description{margin-top:36px}}
+
+.hq-evidence{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:42px}.hq-evidence article{border-top:1px solid var(--line);padding-top:22px}.hq-evidence h3{font-size:26px;margin:18px 0}.hq-evidence article>p:not(.small-label){color:var(--muted);margin-bottom:18px}.hq-boundary{max-width:850px;margin-top:30px}@media(max-width:800px){.hq-evidence{grid-template-columns:1fr;gap:26px}}
