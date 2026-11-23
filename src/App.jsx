@@ -107,7 +107,7 @@ function Work() {
   const gridRef = useRef();
   const websites = PROJECTS.filter(p => p.category === 'websites');
   const filtered = PROJECTS.filter(p => cat === 'all' ? p.category !== 'websites' : (p.categories || [p.category]).includes(cat));
-  const displayed = cat === 'all' ? filtered.filter(p => p.id !== 'studiohq').flatMap(p => p.id === '1by0' ? [p, {id: 'website-collection'}, PROJECTS.find(project => project.id === 'studiohq')] : [p]) : filtered;
+  const displayed = cat === 'all' ? filtered.filter(p => !['find-your-terrain', 'studiohq'].includes(p.id)).flatMap(p => p.id === '1by0' ? [p, {id: 'website-collection'}, PROJECTS.find(project => project.id === 'find-your-terrain'), PROJECTS.find(project => project.id === 'studiohq')] : [p]) : filtered;
   const openWebsites = () => {
     setCat('websites');
     document.getElementById('work')?.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth', block: 'start' });
