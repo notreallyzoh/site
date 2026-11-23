@@ -60,6 +60,33 @@ export const CATEGORIES = [
 
 export const PROJECTS = [
   {
+    id: 'find-your-terrain', title: 'Concept Ad | Find your Terrain - Product launch video', category: 'ai-workflows', year: '2026',
+    showcase: true, showcaseLabel: 'Custom AI Workflows · Concept film',
+    desc: 'An imagined expedition shoe, developed into a 60-second launch film and a 30-second vertical reel. Product design, art direction and an AI-assisted production workflow from reference to final edit.',
+    role: 'Product concept · Creative direction · Reference and prompt design · AI production · Editing & quality control',
+    tech: ['Higgsfield MCP', 'Seedream 5.5', 'Kling 4.0', 'Seedance 2.5', 'ElevenLabs Music v2', 'Python', 'FFmpeg'],
+    links: { caseStudy: '/showcases/find-your-terrain/index.html', caseStudyLabel: 'View the films & production story ↗' },
+    media: [
+      { type: 'image', src: '/showcases/find-your-terrain/forest-hero.webp', label: 'Product hero', caption: 'The final forest setting — a hovering product reveal with no on-screen text.' },
+      { type: 'video', src: '/showcases/find-your-terrain/find-your-terrain-30s-reel.mp4', poster: '/showcases/find-your-terrain/reel-cover.webp', label: '30-second reel', caption: 'Portrait portfolio reel · 30 seconds · 1080 × 1920 · 24 fps. Sound available in the player.' },
+      { type: 'video', src: '/showcases/find-your-terrain/find-your-terrain-60s-film.mp4', poster: '/showcases/find-your-terrain/forest-hero.webp', label: '60-second film', caption: 'Landscape launch film · 60 seconds · 1920 × 1080 · 24 fps. Sound available in the player.' },
+      { type: 'image', src: '/showcases/find-your-terrain/product-hero.webp', label: 'Approved design', caption: 'The approved shoe concept: pine ripstop, olive reinforcements and a mineral-teal sole.' },
+      { type: 'image', src: '/showcases/find-your-terrain/product-side.webp', label: 'Side reference', caption: 'Side reference used to maintain the silhouette, contour pattern and material palette.' },
+      { type: 'image', src: '/showcases/find-your-terrain/alpine.webp', label: 'Alpine payoff', caption: 'A high-altitude panorama gives the trail story its final sense of scale.' },
+    ],
+    longDesc: [
+      { heading: 'The brief', text: 'Create a launch film for a fictional outdoor shoe, connecting rugged product design with the patterns and atmosphere of the natural world. The project is self-initiated: a portfolio exploration of generative AI advertising, not a commissioned campaign or a tested footwear prototype.' },
+      { heading: 'A consistent visual direction', text: 'The design evolved from louder futuristic experiments toward pine, olive, charcoal and mineral teal. An approved set of product views guided subsequent scenes, while woodgrain, lichen and contour lines linked the shoe to its environment.' },
+      { heading: 'From references to film', text: 'Higgsfield MCP connected image, video and music generation. Shot-specific references and prompts defined a clear action and camera movement; Python and FFmpeg assembled the footage, refined transitions and prepared the exports. The edit moves through forest detail, trail running and an alpine reveal before returning to the shoe.' },
+      { heading: 'Refinement and adaptation', text: 'Review focused on product shape, coherent movement, framing and audio. Generated text was removed, transitions were softened and the final product shot was replaced with a controlled hover and turn. The portrait reel reuses 25 seconds of footage with targeted crops and adds a newly generated five-second hero composed for 9:16.' },
+    ],
+    references: [
+      { label: 'Read the case study & explore all exports ↗', url: '/showcases/find-your-terrain/index.html' },
+      { label: 'Open the 30-second reel ↗', url: '/showcases/find-your-terrain/find-your-terrain-30s-reel.mp4' },
+      { label: 'Open the 60-second film ↗', url: '/showcases/find-your-terrain/find-your-terrain-60s-film.mp4' },
+    ],
+  },
+  {
     id: 'studiohq', title: 'StudioHQ — A console for agent-assisted work', category: 'ai-workflows', year: '2026',
     showcase: true, showcaseLabel: 'Custom AI Workflows',
     galleryNavigation: true,

@@ -215,7 +215,7 @@ function ProjectCard({ p }) {
           {p.links?.preview && <a href={p.links.preview} target="_blank" rel="noopener noreferrer" className="work__preview-link mono" onClick={e => e.stopPropagation()}>Try the map ↗</a>}
           {p.links?.gallery && <a href={p.links.gallery} target="_blank" rel="noopener noreferrer" className="work__preview-link mono" onClick={e => e.stopPropagation()}>Identity & motion gallery ↗</a>}
           {p.links?.archive && <a href={p.links.archive} className="work__preview-link mono" onClick={e => e.stopPropagation()}>Try the StudioHQ console ↗</a>}
-          {p.links?.caseStudy && <a href={p.links.caseStudy} className="work__preview-link mono" onClick={e => e.stopPropagation()}>Explore all {p.media.length} UI frames ↗</a>}
+          {p.links?.caseStudy && <a href={p.links.caseStudy} className="work__preview-link mono" onClick={e => e.stopPropagation()}>{p.links.caseStudyLabel || `Explore all ${p.media.length} UI frames ↗`}</a>}
           {p.links?.live && <a href={p.links.live} target="_blank" rel="noopener noreferrer" className="mono work__link" onClick={e => e.stopPropagation()}>{p.domain ? 'Visit website ↗' : '→ Live Demo'}</a>}
         </div>
       </article>
